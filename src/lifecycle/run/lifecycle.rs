@@ -344,4 +344,88 @@ mod tests {
         let result = transition_completed(state);
         assert!(result.is_err());
     }
+
+    // ── build_steps edge cases ──
+
+    #[test]
+    fn build_steps_empty_string_prompt_returns_only_workspace_prepare() {
+        // Empty string should be treated as no prompt (filter removes empty)
+        let request = LifecycleRequest {
+            bead_id: BeadId::parse("empty-test").unwrap(),
+            model: Some(ModelId("gpt-4".into())),
+            repo: None,
+            prompt: Some(PromptString("".into())),
+        };
+        let steps = build_steps(&request);
+        assert_eq!(steps.len(), 1, "empty string prompt should produce only workspace-prepare");
+        assert_eq!(steps[0].name.as_str(), "workspace-prepare");
+    }
+
+    #[test]
+    fn build_steps_whitespace_prompt_returns_two_steps() {
+        // Whitespace-only is NOT empty after trim... but the filter checks is_empty() on raw string
+        // So "   " (spaces) is NOT empty, it has chars. This tests the is_empty() boundary.
+        let request = LifecycleRequest {
+            bead_id: BeadId::parse("ws-test").unwrap(),
+            model: None,
+            repo: None,
+            prompt: Some(PromptString("   ".into())), // 3 spaces, not empty
+        };
+        let steps = build_steps(&request);
+        // filter checks p.0.is_empty() which is false for "   ", so it includes opencode step
+        assert_eq!(steps.len(), 2, "whitespace prompt should produce both steps");
+    }
+
+    // ── LifecycleConfig ──
+
+    #[test]
+    fn lifecycle_config_default() {
+        let config = LifecycleConfig::default();
+        assert_eq!(config.data_dir.as_str(), ".oya-lite");
+        assert!(config.opencode_server.is_none());
+    }
+
+    #[test]
+    fn lifecycle_config_with_server() {
+        use crate::lifecycle::types::{OpencodeServerConfig, OpencodeUrl, SensitiveString, Username};
+        let config = LifecycleConfig {
+            data_dir: crate::lifecycle::types::DataDirPath("/data".into()),
+            opencode_server: Some(OpencodeServerConfig {
+                url: OpencodeUrl("http://localhost:4099".into()),
+                username: Username("user".into()),
+                password: SensitiveString("pass".into()),
+            }),
+        };
+        assert_eq!(config.data_dir.as_str(), "/data");
+        assert!(config.opencode_server.is_some());
+    }
+
+    // ── LifecycleRequest ──
+
+    #[test]
+    fn lifecycle_request_all_fields() {
+        let request = LifecycleRequest {
+            bead_id: BeadId::parse("full-req").unwrap(),
+            model: Some(ModelId("claude-3".into())),
+            repo: Some(RepoUrl("https://github.com/test/repo".into())),
+            prompt: Some(PromptString("do the thing".into())),
+        };
+        assert_eq!(request.bead_id.as_str(), "full-req");
+        assert!(request.model.is_some());
+        assert!(request.repo.is_some());
+        assert!(request.prompt.is_some());
+    }
+
+    #[test]
+    fn lifecycle_request_minimal() {
+        let request = LifecycleRequest {
+            bead_id: BeadId::parse("min-req").unwrap(),
+            model: None,
+            repo: None,
+            prompt: None,
+        };
+        assert!(request.model.is_none());
+        assert!(request.repo.is_none());
+        assert!(request.prompt.is_none());
+    }
 }

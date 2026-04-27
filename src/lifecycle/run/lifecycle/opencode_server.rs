@@ -398,6 +398,34 @@ mod tests {
         assert_eq!(body.model_id, "b");
     }
 
+    #[test]
+    fn build_message_body_leading_slash_means_empty_provider() {
+        // "/model" splits to ["", "model"] → matches [provider, model, ..] with provider=""
+        let prompt = PromptString("test".into());
+        let model = ModelId("/model".into());
+        let body = build_message_body(&prompt, &model, None);
+        assert_eq!(body.provider_id, "");
+        assert_eq!(body.model_id, "model");
+    }
+
+    #[test]
+    fn build_message_body_trailing_slash_means_empty_model() {
+        // "provider/" splits to ["provider", ""] → matches [provider, model, ..] with model=""
+        let prompt = PromptString("test".into());
+        let model = ModelId("provider/".into());
+        let body = build_message_body(&prompt, &model, None);
+        assert_eq!(body.provider_id, "provider");
+        assert_eq!(body.model_id, "");
+    }
+
+    #[test]
+    fn build_message_body_with_cwd_none_when_not_provided() {
+        let prompt = PromptString("test".into());
+        let model = ModelId("gpt-4".into());
+        let body = build_message_body(&prompt, &model, None);
+        assert!(body.cwd.is_none());
+    }
+
     // ── parse_opencode_effect ──
 
     #[test]
@@ -414,16 +442,45 @@ mod tests {
     }
 
     #[test]
-    fn parse_opencode_effect_rejects_other_effects() {
-        for effect in [
-            Effect::WorkspacePrepare { workspace: "w".into(), path: "/tmp".into() },
-            Effect::Jj { args: JjArgs(vec![]), cwd: None },
-            Effect::MoonRun { task: "t".into(), cwd: None },
-            Effect::MoonCi { cwd: None },
-        ] {
-            let result = parse_opencode_effect(&effect);
-            assert!(result.is_err(), "expected error for {:?}", effect);
-        }
+    fn parse_opencode_effect_accepts_opencode_with_cwd() {
+        let effect = Effect::Opencode {
+            prompt: PromptString("prompt".into()),
+            model: ModelId("model".into()),
+            cwd: Some(WorkspacePath("/workspace".into())),
+        };
+        let (p, m, c) = parse_opencode_effect(&effect).unwrap();
+        assert_eq!(p.as_str(), "prompt");
+        assert_eq!(m.as_str(), "model");
+        assert!(c.is_some());
+        assert_eq!(c.unwrap().as_str(), "/workspace");
+    }
+
+    #[test]
+    fn parse_opencode_effect_rejects_workspace_prepare() {
+        let effect = Effect::WorkspacePrepare { workspace: "w".into(), path: "/tmp".into() };
+        let result = parse_opencode_effect(&effect);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_opencode_effect_rejects_jj() {
+        let effect = Effect::Jj { args: JjArgs(vec![]), cwd: None };
+        let result = parse_opencode_effect(&effect);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_opencode_effect_rejects_moon_run() {
+        let effect = Effect::MoonRun { task: "t".into(), cwd: None };
+        let result = parse_opencode_effect(&effect);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_opencode_effect_rejects_moon_ci() {
+        let effect = Effect::MoonCi { cwd: None };
+        let result = parse_opencode_effect(&effect);
+        assert!(result.is_err());
     }
 
     // ── parse_message_response ──

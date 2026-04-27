@@ -202,6 +202,52 @@ mod tests {
         assert_eq!(effect_timeout_secs(&oc), 3600);
     }
 
+    // ── opencode_output_is_error ──
+
+    #[test]
+    fn opencode_output_is_error_true_when_type_error_in_stdout() {
+        assert!(opencode_output_is_error(r#"{"type":"error"}"#, ""));
+    }
+
+    #[test]
+    fn opencode_output_is_error_true_when_provider_error_in_stderr() {
+        assert!(opencode_output_is_error("", "ProviderModelNotFoundError: ..."));
+    }
+
+    #[test]
+    fn opencode_output_is_error_true_when_model_not_found_in_stderr() {
+        assert!(opencode_output_is_error("", "Error: Model not found"));
+    }
+
+    #[test]
+    fn opencode_output_is_error_false_when_no_error_markers() {
+        assert!(!opencode_output_is_error(r#"{"type":"text","content":"hi"}"#, ""));
+    }
+
+    #[test]
+    fn opencode_output_is_error_false_when_empty() {
+        assert!(!opencode_output_is_error("", ""));
+    }
+
+    #[test]
+    fn opencode_output_is_error_partial_json_not_matched() {
+        // The string must be exactly the error marker, not just any JSON
+        assert!(!opencode_output_is_error(r#"{"type":"errorrr"}"#, ""));
+        assert!(!opencode_output_is_error(r#"{"type":"text","error":"..."}"#, ""));
+    }
+
+    #[test]
+    fn opencode_output_is_error_model_not_found_partial_not_matched() {
+        assert!(!opencode_output_is_error("", "Model was not found")); // different order
+        assert!(!opencode_output_is_error("", "model not found error")); // extra words
+    }
+
+    #[test]
+    fn opencode_output_is_error_provider_error_partial_not_matched() {
+        assert!(!opencode_output_is_error("", "ProviderNotFoundError")); // different error name
+        assert!(!opencode_output_is_error("", "ProviderModelError")); // partial
+    }
+
     #[test]
     fn classify_timeout_is_transient() {
         let failure = CommandFailure::Timeout(std::time::Duration::from_secs(30));

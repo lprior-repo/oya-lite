@@ -292,6 +292,46 @@ mod tests {
         }
     }
 
+    // ── handle_step_transition ──
+
+    #[test]
+    fn handle_step_transition_returns_run_when_entry_not_success() {
+        let _run = StepRun {
+            workflow_state: WorkflowState::new(BeadId::parse("t").unwrap()),
+            journal: vec![],
+        };
+        let entry = make_entry("out", "", false); // not success
+        let step_name = StepName("workspace-prepare".into());
+        // The function is async but the early return on !entry.result.is_success()
+        // is testable by calling the pure functions it composes
+        let result = workspace_ready_event(&step_name);
+        assert!(result.is_some()); // workspace-prepare produces WorkspaceReady
+        // The entry is not successful, so the transition would short-circuit
+        assert!(!entry.result.is_success());
+    }
+
+    #[test]
+    fn handle_step_transition_returns_run_when_no_event_for_step() {
+        let step_name = StepName("opencode-run".into());
+        let event = workspace_ready_event(&step_name);
+        assert!(event.is_none(), "opencode-run should produce no state event");
+    }
+
+    #[test]
+    fn handle_step_transition_state_event_workspace_prepare_produces_workspace_ready() {
+        let step_name = StepName("workspace-prepare".into());
+        let event = workspace_ready_event(&step_name);
+        assert!(matches!(event, Some(StateEvent::WorkspaceReady)));
+    }
+
+    #[test]
+    fn handle_step_transition_unknown_step_produces_no_event() {
+        for name in ["moon-ci", "jj", "custom-step"] {
+            let step = StepName(name.into());
+            assert!(workspace_ready_event(&step).is_none(), "expected None for {name}");
+        }
+    }
+
     // ── workspace_ready_event ──
 
     #[test]

@@ -209,4 +209,78 @@ mod tests {
         let result = command_output_to_result(output);
         assert_eq!(result.stdout, "😀");
     }
+
+    #[test]
+    fn command_output_to_result_with_stderr() {
+        use std::process::Output;
+        let output = Output {
+            status: std::process::ExitStatus::default(),
+            stdout: b"stdout data".to_vec(),
+            stderr: b"stderr data".to_vec(),
+        };
+        let result = command_output_to_result(output);
+        assert_eq!(result.stdout, "stdout data");
+        assert_eq!(result.stderr, "stderr data");
+    }
+
+    #[test]
+    fn command_output_to_result_empty_output() {
+        use std::process::Output;
+        let output = Output {
+            status: std::process::ExitStatus::default(),
+            stdout: vec![],
+            stderr: vec![],
+        };
+        let result = command_output_to_result(output);
+        assert_eq!(result.stdout, "");
+        assert_eq!(result.stderr, "");
+    }
+
+    #[test]
+    fn command_result_status_code_none_not_success() {
+        let r = CommandResult {
+            status_code: None,
+            stdout: "".into(),
+            stderr: "".into(),
+        };
+        assert!(!r.is_success());
+    }
+
+    #[test]
+    fn command_result_status_code_some_zero_is_success() {
+        let r = CommandResult {
+            status_code: Some(0),
+            stdout: "".into(),
+            stderr: "".into(),
+        };
+        assert!(r.is_success());
+    }
+
+    #[test]
+    fn command_result_status_code_positive_not_success() {
+        for code in [1, 2, 127, 255] {
+            let r = CommandResult {
+                status_code: Some(code),
+                stdout: "".into(),
+                stderr: "".into(),
+            };
+            assert!(!r.is_success(), "code {code} should not be success");
+        }
+    }
+
+    #[test]
+    fn command_failure_timeout_contains_duration() {
+        let f = CommandFailure::Timeout(Duration::from_millis(500));
+        let s = format!("{f}");
+        assert!(s.contains("500ms") || s.contains("0.5"));
+    }
+
+    #[test]
+    fn tokio_command_executor_default_equates_to_new() {
+        // TokioCommandExecutor is a unit struct; both forms produce identical values
+        #[allow(clippy::default_constructed_unit_structs)]
+        let a = TokioCommandExecutor::default();
+        let b = TokioCommandExecutor::new();
+        assert_eq!(a, b);
+    }
 }
