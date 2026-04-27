@@ -117,3 +117,173 @@ fn progress_indicates_success(progress: &LifecycleProgress) -> bool {
         _ => true,
     }
 }
+
+// ─── TESTS ───────────────────────────────────────────────────────────────────
+
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lifecycle::types::{LifecycleProgress, StepResult};
+
+    // ── build_server_config ──
+
+    #[test]
+    fn build_server_config_returns_none_when_no_server() {
+        let args = Args {
+            data_dir: std::path::PathBuf::from("/tmp"),
+            bead_id: Some("test".into()),
+            model: None,
+            repo: None,
+            prompt: None,
+            server: None,
+            server_user: "opencode".into(),
+            server_password: None,
+        };
+        let result = build_server_config(&args).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn build_server_config_returns_config_with_auth() {
+        let args = Args {
+            data_dir: std::path::PathBuf::from("/tmp"),
+            bead_id: Some("test".into()),
+            model: None,
+            repo: None,
+            prompt: None,
+            server: Some("http://localhost:4099".into()),
+            server_user: "user1".into(),
+            server_password: Some("secret".into()),
+        };
+        let result = build_server_config(&args).unwrap().unwrap();
+        assert_eq!(result.url.as_str(), "http://localhost:4099");
+        assert_eq!(result.username.as_str(), "user1");
+    }
+
+    #[test]
+    fn build_server_config_requires_password_with_server() {
+        let args = Args {
+            data_dir: std::path::PathBuf::from("/tmp"),
+            bead_id: Some("test".into()),
+            model: None,
+            repo: None,
+            prompt: None,
+            server: Some("http://localhost:4099".into()),
+            server_user: "user1".into(),
+            server_password: None,
+        };
+        let result = build_server_config(&args);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("password"));
+    }
+
+    // ── build_request ──
+
+    #[test]
+    fn build_request_parses_valid_bead_id() {
+        let args = Args {
+            data_dir: std::path::PathBuf::from("/tmp"),
+            bead_id: Some("my-test-bean-123".into()),
+            model: Some("claude-3".into()),
+            repo: Some("https://github.com/test/repo".into()),
+            prompt: Some("fix bug".into()),
+            server: None,
+            server_user: "opencode".into(),
+            server_password: None,
+        };
+        let req = build_request(args).unwrap();
+        assert_eq!(req.bead_id.as_str(), "my-test-bean-123");
+        assert_eq!(req.model.as_ref().map(|m| m.as_str()), Some("claude-3"));
+        assert_eq!(req.prompt.as_ref().map(|p| p.as_str()), Some("fix bug"));
+    }
+
+    #[test]
+    fn build_request_fails_without_bead_id() {
+        let args = Args {
+            data_dir: std::path::PathBuf::from("/tmp"),
+            bead_id: None,
+            model: None,
+            repo: None,
+            prompt: None,
+            server: None,
+            server_user: "opencode".into(),
+            server_password: None,
+        };
+        let result = build_request(args);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("bead_id"));
+    }
+
+    #[test]
+    fn build_request_fails_with_invalid_bead_id() {
+        let args = Args {
+            data_dir: std::path::PathBuf::from("/tmp"),
+            bead_id: Some("bad/id".into()),
+            model: None,
+            repo: None,
+            prompt: None,
+            server: None,
+            server_user: "opencode".into(),
+            server_password: None,
+        };
+        let result = build_request(args);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn build_request_optional_fields_optional() {
+        let args = Args {
+            data_dir: std::path::PathBuf::from("/tmp"),
+            bead_id: Some("minimal".into()),
+            model: None,
+            repo: None,
+            prompt: None,
+            server: None,
+            server_user: "opencode".into(),
+            server_password: None,
+        };
+        let req = build_request(args).unwrap();
+        assert!(req.model.is_none());
+        assert!(req.repo.is_none());
+        assert!(req.prompt.is_none());
+    }
+
+    // ── progress_indicates_success ──
+
+    #[test]
+    fn progress_indicates_success_step_failed_false() {
+        let prog = LifecycleProgress::StepFailed {
+            step: "workspace-prepare".into(),
+            error: "oops".into(),
+        };
+        assert!(!progress_indicates_success(&prog));
+    }
+
+    #[test]
+    fn progress_indicates_success_finished_success_true() {
+        let prog = LifecycleProgress::Finished {
+            result: StepResult::Success,
+            message: None,
+        };
+        assert!(progress_indicates_success(&prog));
+    }
+
+    #[test]
+    fn progress_indicates_success_finished_failure_false() {
+        let prog = LifecycleProgress::Finished {
+            result: StepResult::Failure,
+            message: None,
+        };
+        assert!(!progress_indicates_success(&prog));
+    }
+
+    #[test]
+    fn progress_indicates_success_step_started_true() {
+        let prog = LifecycleProgress::StepStarted {
+            step: "workspace-prepare".into(),
+            started_at: "2024-01-01T00:00:00Z".into(),
+        };
+        assert!(progress_indicates_success(&prog));
+    }
+}

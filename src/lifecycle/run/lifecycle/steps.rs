@@ -267,3 +267,180 @@ fn sanitize_failure_message(entry: &EffectJournalEntry) -> String {
 fn first_nonempty_line(text: &str) -> Option<&str> {
     text.lines().find(|line| !line.trim().is_empty())
 }
+
+// ─── TESTS ───────────────────────────────────────────────────────────────────
+
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lifecycle::types::{
+        BeadId, Effect, EffectJournalEntry, StateEvent, StepName, StepResult, WorkflowState,
+        WorkspaceName, WorkspacePath,
+    };
+
+    fn make_entry(stdout: &str, stderr: &str, success: bool) -> EffectJournalEntry {
+        EffectJournalEntry {
+            effect: Effect::WorkspacePrepare {
+                workspace: WorkspaceName("w".into()),
+                path: WorkspacePath("/tmp".into()),
+            },
+            timeout_secs: 30,
+            result: if success { StepResult::Success } else { StepResult::Failure },
+            stdout: stdout.into(),
+            stderr: stderr.into(),
+        }
+    }
+
+    // ── workspace_ready_event ──
+
+    #[test]
+    fn workspace_ready_event_workspace_prepare_returns_workspace_ready() {
+        let step = StepName("workspace-prepare".into());
+        let event = workspace_ready_event(&step);
+        assert!(matches!(event, Some(StateEvent::WorkspaceReady)));
+    }
+
+    #[test]
+    fn workspace_ready_event_other_step_returns_none() {
+        for name in ["opencode-run", "moon-ci", "jj"] {
+            let step = StepName(name.into());
+            assert!(workspace_ready_event(&step).is_none(), "expected None for {name}");
+        }
+    }
+
+    // ── step_transition_failure ──
+
+    #[test]
+    fn step_transition_failure_contains_state_and_error() {
+        let state = WorkflowState::new(BeadId::parse("fail-test").unwrap());
+        let journal = vec![];
+        let err = LifecycleError::terminal(
+            crate::lifecycle::error::FailureCategory::Command,
+            "boom",
+        );
+        let failure = step_transition_failure(state.clone(), journal.clone(), err.clone());
+        assert!(failure.error.is_terminal());
+        assert_eq!(failure.partial_run.workflow_state.phase, state.phase);
+        assert_eq!(failure.partial_run.journal.len(), 0);
+    }
+
+    // ── append_to_journal ──
+
+    #[test]
+    fn append_to_journal_adds_entry() {
+        let entry = make_entry("out", "", true);
+        let journal: Vec<EffectJournalEntry> = vec![];
+        let result = append_to_journal(journal, entry.clone());
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].stdout, "out");
+    }
+
+    #[test]
+    fn append_to_journal_preserves_existing() {
+        let e1 = make_entry("first", "", true);
+        let e2 = make_entry("second", "", true);
+        let journal = vec![e1];
+        let result = append_to_journal(journal, e2);
+        assert_eq!(result.len(), 2);
+    }
+
+    // ── sanitize_failure_message ──
+
+    #[test]
+    fn sanitize_failure_message_opencode_error_returns_sanitized() {
+        let entry = make_entry(r#"{"type":"error","message":"model not found"}"#, "", false);
+        let msg = sanitize_failure_message(&entry);
+        assert_eq!(msg, "opencode model not found or unavailable");
+    }
+
+    #[test]
+    fn sanitize_failure_message_stderr_line_returns_stderr() {
+        let entry = make_entry("", "actual error\nline2\n", false);
+        let msg = sanitize_failure_message(&entry);
+        assert_eq!(msg, "actual error");
+    }
+
+    #[test]
+    fn sanitize_failure_message_stdout_line_when_stderr_empty() {
+        let entry = make_entry("stdout error\n", "", false);
+        let msg = sanitize_failure_message(&entry);
+        assert_eq!(msg, "stdout error");
+    }
+
+    #[test]
+    fn sanitize_failure_message_empty_returns_default() {
+        let entry = make_entry("", "", false);
+        let msg = sanitize_failure_message(&entry);
+        assert_eq!(msg, "command failed without diagnostic output");
+    }
+
+    #[test]
+    fn sanitize_failure_message_first_real_line_returned() {
+        let entry = make_entry("", "error line\nanother line\n", false);
+        let msg = sanitize_failure_message(&entry);
+        assert_eq!(msg, "error line");
+    }
+
+    // ── first_nonempty_line ──
+
+    #[test]
+    fn first_nonempty_line_finds_line() {
+        assert_eq!(first_nonempty_line("hello\nworld\n"), Some("hello"));
+        assert_eq!(first_nonempty_line("  spaced  \nnext\n"), Some("  spaced  "));
+    }
+
+    #[test]
+    fn first_nonempty_line_skips_empty_lines() {
+        assert_eq!(first_nonempty_line("\n  \nhello\n"), Some("hello"));
+    }
+
+    #[test]
+    fn first_nonempty_line_none_when_all_empty() {
+        assert!(first_nonempty_line("").is_none());
+        assert!(first_nonempty_line("  \n  \n").is_none());
+    }
+
+    #[test]
+    fn first_nonempty_line_only_whitespace() {
+        assert!(first_nonempty_line("   ").is_none());
+        assert!(first_nonempty_line(" \t\n ").is_none());
+    }
+
+    #[test]
+    fn first_nonempty_line_newline_first() {
+        assert_eq!(first_nonempty_line("\nhello"), Some("hello"));
+    }
+
+    #[test]
+    fn first_nonempty_line_single_char() {
+        assert_eq!(first_nonempty_line("x"), Some("x"));
+    }
+
+    // ── to_step_failure ──
+
+    #[test]
+    fn to_step_failure_copies_run_state() {
+        let run = StepRun {
+            workflow_state: WorkflowState::new(BeadId::parse("t").unwrap()),
+            journal: vec![],
+        };
+        let err = LifecycleError::transient(
+            crate::lifecycle::error::FailureCategory::Command,
+            "transient error",
+        );
+        let failure = to_step_failure(&run, err.clone());
+        assert!(!failure.error.is_terminal());
+        assert_eq!(failure.partial_run.workflow_state.phase, run.workflow_state.phase);
+    }
+
+    // ── build_step_failure ──
+
+    #[test]
+    fn build_step_failure_returns_terminal_error() {
+        let state = WorkflowState::new(BeadId::parse("t").unwrap());
+        let failure = build_step_failure(state, vec![], "test failure".into());
+        assert!(failure.error.is_terminal());
+        assert_eq!(failure.error.category(), crate::lifecycle::error::FailureCategory::Command);
+    }
+}

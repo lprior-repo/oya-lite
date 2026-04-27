@@ -12,8 +12,8 @@ use crate::lifecycle::state::state_db::StateDbError;
 use crate::lifecycle::state::{load_state, persist_state, StateDb};
 use crate::lifecycle::types::{
     BeadId, Effect, EffectJournalEntry, ErrorMessage, LifecycleProgress, LifecycleRequest,
-    LifecycleStep, ModelId, OpencodeServerConfig, PromptString, StateEvent, StepName, StepResult,
-    WorkflowState, WorkspaceName, WorkspacePath,
+    LifecycleStep, ModelId, OpencodeServerConfig, PromptString, StateEvent,
+    StepName, StepResult, WorkflowState, WorkspaceName, WorkspacePath,
 };
 use std::path::PathBuf;
 use steps::{execute_steps, StepFailure, StepRun};
@@ -227,4 +227,121 @@ fn persist_completed_state(
             e.to_string(),
         )
     })
+}
+
+// ─── TESTS ───────────────────────────────────────────────────────────────────
+
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lifecycle::types::{
+        BeadId, LifecycleRequest, ModelId, Phase, PromptString, RepoUrl,
+    };
+
+    // ── build_steps ──
+
+    #[test]
+    fn build_steps_no_prompt_returns_workspace_prepare_only() {
+        let request = LifecycleRequest {
+            bead_id: BeadId::parse("test").unwrap(),
+            model: None,
+            repo: None,
+            prompt: None,
+        };
+        let steps = build_steps(&request);
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].name.as_str(), "workspace-prepare");
+    }
+
+    #[test]
+    fn build_steps_with_prompt_returns_workspace_prepare_and_opencode() {
+        let request = LifecycleRequest {
+            bead_id: BeadId::parse("test").unwrap(),
+            model: Some(ModelId("gpt-4".into())),
+            repo: Some(RepoUrl("https://github.com/test/repo".into())),
+            prompt: Some(PromptString("fix it".into())),
+        };
+        let steps = build_steps(&request);
+        assert_eq!(steps.len(), 2);
+        assert_eq!(steps[0].name.as_str(), "workspace-prepare");
+        assert_eq!(steps[1].name.as_str(), "opencode-run");
+    }
+
+    #[test]
+    fn build_steps_with_empty_prompt_returns_only_workspace_prepare() {
+        let request = LifecycleRequest {
+            bead_id: BeadId::parse("test").unwrap(),
+            model: None,
+            repo: None,
+            prompt: Some(PromptString("".into())),
+        };
+        let steps = build_steps(&request);
+        assert_eq!(steps.len(), 1);
+    }
+
+    // ── build_opencode_step ──
+
+    #[test]
+    fn build_opencode_step_uses_provided_model() {
+        let bead_id = BeadId::parse("my-bean").unwrap();
+        let prompt = PromptString("hello".into());
+        let model = ModelId("claude-3.5".into());
+        let step = build_opencode_step(&bead_id, &prompt, Some(&model));
+        match step.effect {
+            Effect::Opencode { prompt: p, model: m, cwd } => {
+                assert_eq!(p.as_str(), "hello");
+                assert_eq!(m.as_str(), "claude-3.5");
+                assert!(cwd.is_some());
+            }
+            _ => panic!("expected Opencode effect"),
+        }
+    }
+
+    #[test]
+    fn build_opencode_step_defaults_model_when_none() {
+        let bead_id = BeadId::parse("my-bean").unwrap();
+        let step = build_opencode_step(&bead_id, &PromptString("hi".into()), None);
+        match step.effect {
+            Effect::Opencode { model, .. } => {
+                assert_eq!(model.as_str(), DEFAULT_MODEL);
+            }
+            _ => panic!("expected Opencode effect"),
+        }
+    }
+
+    #[test]
+    fn build_opencode_step_cwd_contains_bead_id() {
+        let bead_id = BeadId::parse("my-bean").unwrap();
+        let step = build_opencode_step(&bead_id, &PromptString("hi".into()), None);
+        match step.effect {
+            Effect::Opencode { cwd, .. } => {
+                assert!(cwd.unwrap().as_str().contains("my-bean"));
+            }
+            _ => panic!("expected Opencode effect"),
+        }
+    }
+
+    // ── transition_completed ──
+
+    #[test]
+    fn transition_completed_transitions_to_completed_phase() {
+        let id = BeadId::parse("comp-test").unwrap();
+        let state = WorkflowState::new(id)
+            .with_transition(StateEvent::WorkspaceReady)
+            .unwrap()
+            .with_transition(StateEvent::StepStarted("s".into()))
+            .unwrap();
+        let result = transition_completed(state);
+        assert!(result.is_ok());
+        assert!(matches!(result.unwrap().phase, Phase::Completed { .. }));
+    }
+
+    #[test]
+    fn transition_completed_fails_from_planned_phase() {
+        let id = BeadId::parse("fail-test").unwrap();
+        let state = WorkflowState::new(id);
+        let result = transition_completed(state);
+        assert!(result.is_err());
+    }
 }

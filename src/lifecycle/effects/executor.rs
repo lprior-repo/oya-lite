@@ -184,4 +184,29 @@ mod tests {
         let s = format!("{f}");
         assert!(s.contains("missing"));
     }
+
+    #[test]
+    fn command_output_to_result_with_output() {
+        use std::process::Output;
+        let output = Output {
+            status: std::process::ExitStatus::default(),
+            stdout: b"hello".to_vec(),
+            stderr: b"world".to_vec(),
+        };
+        let result = command_output_to_result(output);
+        assert_eq!(result.stdout, "hello");
+        assert_eq!(result.stderr, "world");
+    }
+
+    #[test]
+    fn command_output_to_result_with_utf8_lossy() {
+        use std::process::Output;
+        let output = Output {
+            status: std::process::ExitStatus::default(),
+            stdout: vec![0xf0, 0x9f, 0x98, 0x80],
+            stderr: vec![],
+        };
+        let result = command_output_to_result(output);
+        assert_eq!(result.stdout, "😀");
+    }
 }

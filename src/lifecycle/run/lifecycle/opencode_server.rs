@@ -251,3 +251,323 @@ pub(super) async fn run_opencode_server(
         prompt, model, cwd, result, msg_body,
     ))
 }
+
+// ─── TESTS ───────────────────────────────────────────────────────────────────
+
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lifecycle::types::{
+        JjArgs, ModelId, OpencodeUrl, PromptString, SensitiveString, Username, OPENCODE_TIMEOUT_SECS,
+    };
+    use reqwest::StatusCode;
+
+    fn config() -> OpencodeServerConfig {
+        OpencodeServerConfig {
+            url: OpencodeUrl("http://localhost:4099".into()),
+            username: Username("user".into()),
+            password: SensitiveString("pass".into()),
+        }
+    }
+
+    // ── create_session_body ──
+
+    #[test]
+    fn create_session_body_contains_title() {
+        let prompt = PromptString("fix the bug".into());
+        let body = create_session_body(&prompt);
+        let title = body.get("title").unwrap().as_str().unwrap();
+        assert!(title.starts_with("oya-lite:"));
+    }
+
+    #[test]
+    fn create_session_body_truncates_long_prompt() {
+        let long_prompt = PromptString("x".repeat(100));
+        let body = create_session_body(&long_prompt);
+        let title = body.get("title").unwrap().as_str().unwrap();
+        // title is "oya-lite: " (9 chars) + up to 40 chars of prompt
+        assert!(title.len() <= 49);
+    }
+
+    #[test]
+    fn create_session_body_with_empty_prompt() {
+        let prompt = PromptString("".into());
+        let body = create_session_body(&prompt);
+        let title = body.get("title").unwrap().as_str().unwrap();
+        assert_eq!(title, "oya-lite: 0");
+    }
+
+    #[test]
+    fn create_session_body_exactly_40_chars() {
+        let prompt = PromptString("a".repeat(40));
+        let body = create_session_body(&prompt);
+        let title = body.get("title").unwrap().as_str().unwrap();
+        // "oya-lite: " (9 chars) + "40" (2 chars) = 11 total
+        assert_eq!(title, "oya-lite: 40");
+    }
+
+    #[test]
+    fn create_session_body_41_chars_shows_40() {
+        let prompt = PromptString("a".repeat(41));
+        let body = create_session_body(&prompt);
+        let title = body.get("title").unwrap().as_str().unwrap();
+        // Should show 40 since .min(40) caps at 40
+        assert_eq!(title, "oya-lite: 40");
+    }
+
+    // ── build_message_body ──
+
+    #[test]
+    fn build_message_body_parses_model_with_provider() {
+        let prompt = PromptString("hello".into());
+        let model = ModelId("anthropic/claude-3".into());
+        let body = build_message_body(&prompt, &model, None);
+        assert_eq!(body.provider_id, "anthropic");
+        assert_eq!(body.model_id, "claude-3");
+        assert!(body.parts[0].as_object().unwrap().contains_key("text"));
+    }
+
+    #[test]
+    fn build_message_body_single_part_defaults_to_anthropic() {
+        let prompt = PromptString("hi".into());
+        let model = ModelId("claude-3".into());
+        let body = build_message_body(&prompt, &model, None);
+        assert_eq!(body.provider_id, "anthropic");
+        assert_eq!(body.model_id, "claude-3");
+    }
+
+    #[test]
+    fn build_message_body_single_segment_defaults_anthropic() {
+        let prompt = PromptString("".into());
+        let model = ModelId("claude-3".into());
+        let body = build_message_body(&prompt, &model, None);
+        assert_eq!(body.provider_id, "anthropic");
+        assert_eq!(body.model_id, "claude-3");
+    }
+
+    #[test]
+    fn build_message_body_two_segment_parses_provider_and_model() {
+        let prompt = PromptString("hi".into());
+        let model = ModelId("anthropic/claude-3".into());
+        let body = build_message_body(&prompt, &model, None);
+        assert_eq!(body.provider_id, "anthropic");
+        assert_eq!(body.model_id, "claude-3");
+    }
+
+    #[test]
+    fn build_message_body_three_segment_uses_first_two() {
+        let prompt = PromptString("hi".into());
+        let model = ModelId("a/b/c".into());
+        let body = build_message_body(&prompt, &model, None);
+        assert_eq!(body.provider_id, "a");
+        assert_eq!(body.model_id, "b");
+    }
+
+    #[test]
+    fn build_message_body_with_cwd() {
+        let prompt = PromptString("pwd".into());
+        let model = ModelId("gpt-4".into());
+        let cwd = Some(WorkspacePath("/tmp".into()));
+        let body = build_message_body(&prompt, &model, cwd.as_ref());
+        assert_eq!(body.cwd, Some("/tmp"));
+    }
+
+    #[test]
+    fn build_message_body_with_empty_prompt() {
+        let prompt = PromptString("".into());
+        let model = ModelId("gpt-4".into());
+        let body = build_message_body(&prompt, &model, None);
+        assert!(body.parts[0].as_object().unwrap().contains_key("text"));
+    }
+
+    #[test]
+    fn build_message_body_cwd_none() {
+        let prompt = PromptString("hello".into());
+        let model = ModelId("gpt-4".into());
+        let body = build_message_body(&prompt, &model, None);
+        assert_eq!(body.cwd, None);
+    }
+
+    #[test]
+    fn build_message_body_four_segment_uses_first_two() {
+        let prompt = PromptString("hi".into());
+        let model = ModelId("a/b/c/d".into());
+        let body = build_message_body(&prompt, &model, None);
+        assert_eq!(body.provider_id, "a");
+        assert_eq!(body.model_id, "b");
+    }
+
+    // ── parse_opencode_effect ──
+
+    #[test]
+    fn parse_opencode_effect_accepts_opencode() {
+        let effect = Effect::Opencode {
+            prompt: PromptString("p".into()),
+            model: ModelId("m".into()),
+            cwd: None,
+        };
+        let (p, m, c) = parse_opencode_effect(&effect).unwrap();
+        assert_eq!(p.as_str(), "p");
+        assert_eq!(m.as_str(), "m");
+        assert!(c.is_none());
+    }
+
+    #[test]
+    fn parse_opencode_effect_rejects_other_effects() {
+        for effect in [
+            Effect::WorkspacePrepare { workspace: "w".into(), path: "/tmp".into() },
+            Effect::Jj { args: JjArgs(vec![]), cwd: None },
+            Effect::MoonRun { task: "t".into(), cwd: None },
+            Effect::MoonCi { cwd: None },
+        ] {
+            let result = parse_opencode_effect(&effect);
+            assert!(result.is_err(), "expected error for {:?}", effect);
+        }
+    }
+
+    // ── parse_message_response ──
+
+    #[test]
+    fn parse_message_response_success_when_200_and_no_error() {
+        let body = r#"{"type":"text","content":"hello"}"#;
+        let (result, out) = parse_message_response(StatusCode::OK, body.into());
+        assert!(matches!(result, StepResult::Success));
+        assert!(out.contains("hello"));
+    }
+
+    #[test]
+    fn parse_message_response_failure_when_500() {
+        let (result, _) = parse_message_response(StatusCode::INTERNAL_SERVER_ERROR, "server error".into());
+        assert!(matches!(result, StepResult::Failure));
+    }
+
+    #[test]
+    fn parse_message_response_failure_when_error_json() {
+        let body = r#"{"type":"error","message":"model not found"}"#;
+        let (result, _) = parse_message_response(StatusCode::OK, body.into());
+        assert!(matches!(result, StepResult::Failure));
+    }
+
+    #[test]
+    fn parse_message_response_truncates_long_body() {
+        let body = "x".repeat(5000);
+        let (_, out) = parse_message_response(StatusCode::OK, body.clone());
+        assert_eq!(out.len(), 4096);
+    }
+
+    #[test]
+    fn parse_message_response_failure_when_400() {
+        let (result, _) = parse_message_response(StatusCode::BAD_REQUEST, "bad request".into());
+        assert!(matches!(result, StepResult::Failure));
+    }
+
+    #[test]
+    fn parse_message_response_failure_when_401() {
+        let (result, _) = parse_message_response(StatusCode::UNAUTHORIZED, "unauthorized".into());
+        assert!(matches!(result, StepResult::Failure));
+    }
+
+    #[test]
+    fn parse_message_response_success_empty_body() {
+        let (result, out) = parse_message_response(StatusCode::OK, "".into());
+        assert!(matches!(result, StepResult::Success));
+        assert_eq!(out, "");
+    }
+
+    #[test]
+    fn parse_message_response_non_json_body() {
+        let body = "plain text response";
+        let (result, _) = parse_message_response(StatusCode::OK, body.into());
+        assert!(matches!(result, StepResult::Success));
+    }
+
+    // ── build_message_url ──
+
+    #[test]
+    fn build_message_url_formats_correctly() {
+        let cfg = config();
+        let url = build_message_url(&cfg, "abc123");
+        assert_eq!(url, "http://localhost:4099/session/abc123/message");
+    }
+
+    #[test]
+    fn build_message_url_strips_trailing_slash() {
+        let mut cfg = config();
+        cfg.url = OpencodeUrl("http://localhost:4099/".into());
+        let url = build_message_url(&cfg, "sid");
+        assert_eq!(url, "http://localhost:4099/session/sid/message");
+    }
+
+    // ── create_opencode_journal_entry ──
+
+    #[test]
+    fn create_opencode_journal_entry_success_stores_in_stdout() {
+        let entry = create_opencode_journal_entry(
+            &PromptString("hello".into()),
+            &ModelId("gpt-4".into()),
+            &None,
+            StepResult::Success,
+            "model response text".into(),
+        );
+        assert!(entry.result.is_success());
+        assert_eq!(entry.stdout, "model response text");
+        assert!(entry.stderr.is_empty());
+        assert_eq!(entry.timeout_secs, OPENCODE_TIMEOUT_SECS);
+    }
+
+    #[test]
+    fn create_opencode_journal_entry_failure_stores_in_stderr() {
+        let entry = create_opencode_journal_entry(
+            &PromptString("hi".into()),
+            &ModelId("gpt-4".into()),
+            &None,
+            StepResult::Failure,
+            "error message".into(),
+        );
+        assert!(!entry.result.is_success());
+        assert!(entry.stdout.is_empty());
+        assert_eq!(entry.stderr, "error message");
+    }
+
+    #[test]
+    fn create_opencode_journal_entry_includes_effect() {
+        let entry = create_opencode_journal_entry(
+            &PromptString("p".into()),
+            &ModelId("m".into()),
+            &Some(WorkspacePath("/cwd".into())),
+            StepResult::Success,
+            "ok".into(),
+        );
+        match &entry.effect {
+            Effect::Opencode { prompt, model, cwd } => {
+                assert_eq!(prompt.as_str(), "p");
+                assert_eq!(model.as_str(), "m");
+                assert!(cwd.is_some());
+            }
+            _ => panic!("expected Opencode effect"),
+        }
+    }
+
+    // ── journal_stdout / journal_stderr ──
+
+    #[test]
+    fn journal_stdout_returns_body_on_success() {
+        assert_eq!(journal_stdout(&StepResult::Success, "response"), "response");
+    }
+
+    #[test]
+    fn journal_stdout_empty_on_failure() {
+        assert_eq!(journal_stdout(&StepResult::Failure, "response"), "");
+    }
+
+    #[test]
+    fn journal_stderr_empty_on_success() {
+        assert_eq!(journal_stderr(&StepResult::Success, "response".to_string()), "");
+    }
+
+    #[test]
+    fn journal_stderr_returns_body_on_failure() {
+        assert_eq!(journal_stderr(&StepResult::Failure, "error".to_string()), "error");
+    }
+}
