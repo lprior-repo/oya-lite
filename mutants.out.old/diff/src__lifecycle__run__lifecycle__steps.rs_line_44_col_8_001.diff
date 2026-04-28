@@ -1,0 +1,21 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ delete ! in handle_step_transition
+@@ -36,17 +36,17 @@
+     Ok(run)
+ }
+ 
+ async fn handle_step_transition(
+     run: StepRun,
+     step_name: &StepName,
+     entry: &EffectJournalEntry,
+ ) -> Result<StepRun, StepFailure> {
+-    if !entry.result.is_success() {
++    if  /* ~ changed by cargo-mutants ~ */entry.result.is_success() {
+         return Ok(run);
+     }
+     let Some(event) = workspace_ready_event(step_name) else {
+         return Ok(run);
+     };
+     let StepRun {
+         workflow_state,
+         journal,

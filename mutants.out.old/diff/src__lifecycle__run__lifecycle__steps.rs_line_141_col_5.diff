@@ -1,0 +1,27 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ replace to_step_failure -> StepFailure with Default::default()
+@@ -133,23 +133,17 @@
+     if entry.result.is_success() {
+         Ok(on_step_success(transitioned_run, entry, step_name, tx).await)
+     } else {
+         Err(on_step_failure(transitioned_run, entry, step_name, tx).await)
+     }
+ }
+ 
+ fn to_step_failure(run: &StepRun, error: LifecycleError) -> StepFailure {
+-    StepFailure {
+-        partial_run: StepRun {
+-            workflow_state: run.workflow_state.clone(),
+-            journal: run.journal.clone(),
+-        },
+-        error,
+-    }
++    Default::default() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn on_dispatch_failure(
+     run: StepRun,
+     step_name: &StepName,
+     tx: &mpsc::Sender<LifecycleProgress>,
+     error: LifecycleError,
+ ) -> StepFailure {

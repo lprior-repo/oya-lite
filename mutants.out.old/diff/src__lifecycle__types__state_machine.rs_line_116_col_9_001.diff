@@ -1,0 +1,27 @@
+--- src/lifecycle/types/state_machine.rs
++++ delete match arm (Phase::WorkspaceReady{bead} | Phase::Executing{bead, ..}, StateEvent::Completed(result),) in completed_transition
+@@ -108,23 +108,17 @@
+             Some(Phase::WorkspaceReady { bead: bead.clone() })
+         }
+         _ => None,
+     }
+ }
+ 
+ fn completed_transition(phase: &Phase, event: &StateEvent) -> Option<Phase> {
+     match (phase, event) {
+-        (
+-            Phase::WorkspaceReady { bead } | Phase::Executing { bead, .. },
+-            StateEvent::Completed(result),
+-        ) => Some(Phase::Completed {
+-            bead: bead.clone(),
+-            result: *result,
+-        }),
++         /* ~ changed by cargo-mutants ~ */
+         _ => None,
+     }
+ }
+ 
+ fn invalid_transition() -> LifecycleError {
+     LifecycleError::terminal(FailureCategory::Validation, "invalid state transition")
+ }
+ 

@@ -1,0 +1,26 @@
+--- src/lifecycle/types/state_machine.rs
++++ replace executing_workspace_ready -> Option<Phase> with None
+@@ -98,22 +98,17 @@
+             bead: bead.clone(),
+             step: step.clone(),
+         }),
+         _ => None,
+     }
+ }
+ 
+ fn executing_workspace_ready(phase: &Phase, event: &StateEvent) -> Option<Phase> {
+-    match (phase, event) {
+-        (Phase::Executing { bead, .. }, StateEvent::WorkspaceReady) => {
+-            Some(Phase::WorkspaceReady { bead: bead.clone() })
+-        }
+-        _ => None,
+-    }
++    None /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn completed_transition(phase: &Phase, event: &StateEvent) -> Option<Phase> {
+     match (phase, event) {
+         (
+             Phase::WorkspaceReady { bead } | Phase::Executing { bead, .. },
+             StateEvent::Completed(result),
+         ) => Some(Phase::Completed {

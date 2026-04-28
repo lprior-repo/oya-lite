@@ -1,0 +1,33 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ replace on_step_success -> StepRun with Default::default()
+@@ -190,29 +190,17 @@
+ }
+ 
+ async fn on_step_success(
+     run: StepRun,
+     entry: EffectJournalEntry,
+     step_name: &StepName,
+     tx: &mpsc::Sender<LifecycleProgress>,
+ ) -> StepRun {
+-    let new_state = run.workflow_state.with_advanced_step(step_name.clone());
+-    send_progress(
+-        tx,
+-        LifecycleProgress::StepCompleted {
+-            step: step_name.clone(),
+-            duration_ms: 0,
+-        },
+-    )
+-    .await;
+-    StepRun {
+-        workflow_state: new_state,
+-        journal: append_to_journal(run.journal, entry),
+-    }
++    Default::default() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn on_step_failure(
+     run: StepRun,
+     entry: EffectJournalEntry,
+     step_name: &StepName,
+     tx: &mpsc::Sender<LifecycleProgress>,
+ ) -> StepFailure {

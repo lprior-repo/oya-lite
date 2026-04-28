@@ -1,0 +1,27 @@
+--- src/lifecycle/effects/run.rs
++++ replace run_effect -> std::result::Result<EffectJournalEntry, LifecycleError> with Ok(Default::default())
+@@ -43,23 +43,17 @@
+         || stderr.contains("Model not found")
+ }
+ 
+ pub async fn run_effect<E: CommandExecutor>(
+     executor: &E,
+     effect: Effect,
+     cwd: Option<String>,
+ ) -> std::result::Result<EffectJournalEntry, LifecycleError> {
+-    let timeout_secs = effect_timeout_secs(&effect);
+-    let effect_clone = effect.clone();
+-    let exec_result = executor.execute(effect, cwd, timeout_secs).await;
+-    match exec_result {
+-        Ok(result) => Ok(build_journal_entry(effect_clone, timeout_secs, result)),
+-        Err(failure) => Err(classify_command_failure(&failure)),
+-    }
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn build_journal_entry(
+     effect: Effect,
+     timeout_secs: u64,
+     result: CommandResult,
+ ) -> EffectJournalEntry {
+     let result_val = if command_result_is_success(&effect, &result) {

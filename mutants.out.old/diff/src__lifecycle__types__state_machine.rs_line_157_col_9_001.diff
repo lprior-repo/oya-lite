@@ -1,0 +1,25 @@
+--- src/lifecycle/types/state_machine.rs
++++ replace WorkflowState::with_transition -> Result<Self, LifecycleError> with Ok(Default::default())
+@@ -149,21 +149,17 @@
+         let bead = BeadData::from_bead_id(bead_id);
+         Self {
+             phase: Phase::Planned { bead },
+             completed_steps: StepDeps::new(),
+         }
+     }
+ 
+     pub fn with_transition(self, event: StateEvent) -> Result<Self, LifecycleError> {
+-        let next_phase = transition_phase(&self.phase, &event)?;
+-        Ok(Self {
+-            phase: next_phase,
+-            completed_steps: self.completed_steps,
+-        })
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     #[must_use]
+     pub fn with_advanced_step(self, step_name: StepName) -> Self {
+         let mut completed = self.completed_steps;
+         completed.push(step_name);
+         Self {
+             phase: self.phase,

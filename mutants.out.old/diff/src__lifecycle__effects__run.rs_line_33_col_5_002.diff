@@ -1,0 +1,25 @@
+--- src/lifecycle/effects/run.rs
++++ replace command_result_is_success -> bool with true
+@@ -25,21 +25,17 @@
+         CommandFailure::Io(_) => LifecycleError::transient(
+             FailureCategory::Command,
+             "io error during command execution",
+         ),
+     }
+ }
+ 
+ fn command_result_is_success(effect: &Effect, result: &CommandResult) -> bool {
+-    result.is_success()
+-        && match effect {
+-            Effect::Opencode { .. } => !opencode_output_is_error(&result.stdout, &result.stderr),
+-            _ => true,
+-        }
++    true /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ pub fn opencode_output_is_error(stdout: &str, stderr: &str) -> bool {
+     stdout.contains("\"type\":\"error\"")
+         || stderr.contains("ProviderModelNotFoundError")
+         || stderr.contains("Model not found")
+ }
+ 

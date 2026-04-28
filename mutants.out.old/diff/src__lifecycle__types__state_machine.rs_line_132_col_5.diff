@@ -1,0 +1,32 @@
+--- src/lifecycle/types/state_machine.rs
++++ replace failed_transition -> Result<Phase, LifecycleError> with Ok(Default::default())
+@@ -124,28 +124,17 @@
+     }
+ }
+ 
+ fn invalid_transition() -> LifecycleError {
+     LifecycleError::terminal(FailureCategory::Validation, "invalid state transition")
+ }
+ 
+ fn failed_transition(phase: &Phase, error: &ErrorMessage) -> Result<Phase, LifecycleError> {
+-    match phase {
+-        Phase::Planned { bead }
+-        | Phase::WorkspaceReady { bead }
+-        | Phase::Executing { bead, .. } => Ok(Phase::Failed {
+-            bead_id: bead.bead_id.clone(),
+-            error: error.clone(),
+-        }),
+-        Phase::Completed { .. } | Phase::Failed { .. } => Err(LifecycleError::terminal(
+-            FailureCategory::Validation,
+-            error.as_str(),
+-        )),
+-    }
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ impl WorkflowState {
+     #[must_use]
+     pub fn new(bead_id: BeadId) -> Self {
+         let bead = BeadData::from_bead_id(bead_id);
+         Self {
+             phase: Phase::Planned { bead },

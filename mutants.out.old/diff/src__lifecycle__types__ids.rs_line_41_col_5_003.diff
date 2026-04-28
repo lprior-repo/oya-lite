@@ -1,0 +1,21 @@
+--- src/lifecycle/types/ids.rs
++++ replace is_bead_char -> bool with false
+@@ -33,17 +33,17 @@
+ 
+ impl std::fmt::Display for BeadId {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+         write!(f, "{}", self.0)
+     }
+ }
+ 
+ fn is_bead_char(c: char) -> bool {
+-    c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'
++    false /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq)]
+ pub enum BeadIdParseError {
+     Empty,
+     TooLong { len: usize, max: usize },
+     InvalidChars,
+ }

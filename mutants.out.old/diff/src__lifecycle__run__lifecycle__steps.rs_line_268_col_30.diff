@@ -1,0 +1,21 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ delete ! in first_nonempty_line
+@@ -260,17 +260,17 @@
+     }
+     match first_nonempty_line(&entry.stderr).or_else(|| first_nonempty_line(&entry.stdout)) {
+         Some(line) => line.to_owned(),
+         None => "command failed without diagnostic output".to_owned(),
+     }
+ }
+ 
+ fn first_nonempty_line(text: &str) -> Option<&str> {
+-    text.lines().find(|line| !line.trim().is_empty())
++    text.lines().find(|line|  /* ~ changed by cargo-mutants ~ */line.trim().is_empty())
+ }
+ 
+ // ─── TESTS ───────────────────────────────────────────────────────────────────
+ 
+ #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+ #[cfg(test)]
+ mod tests {
+    use super::*;

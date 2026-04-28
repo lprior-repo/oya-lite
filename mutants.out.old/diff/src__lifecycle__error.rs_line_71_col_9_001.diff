@@ -1,0 +1,23 @@
+--- src/lifecycle/error.rs
++++ replace LifecycleError::category -> FailureCategory with Default::default()
+@@ -63,19 +63,17 @@
+     #[must_use]
+     pub fn is_terminal(&self) -> bool {
+         matches!(self, Self::Terminal { .. })
+     }
+ 
+     #[allow(dead_code)]
+     #[must_use]
+     pub fn category(&self) -> FailureCategory {
+-        match self {
+-            Self::Terminal { category, .. } | Self::Transient { category, .. } => *category,
+-        }
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     #[allow(dead_code)]
+     #[must_use]
+     pub fn message(&self) -> &str {
+         match self {
+             Self::Terminal { message, .. } | Self::Transient { message, .. } => message,
+         }

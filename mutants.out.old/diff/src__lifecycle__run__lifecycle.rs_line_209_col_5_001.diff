@@ -1,0 +1,28 @@
+--- src/lifecycle/run/lifecycle.rs
++++ replace transition_completed -> std::result::Result<WorkflowState, LifecycleError> with Ok(Default::default())
+@@ -201,24 +201,17 @@
+         },
+     )
+     .await;
+ }
+ 
+ fn transition_completed(
+     state: WorkflowState,
+ ) -> std::result::Result<WorkflowState, LifecycleError> {
+-    state
+-        .with_transition(StateEvent::Completed(StepResult::Success))
+-        .map_err(|e| {
+-            LifecycleError::terminal(
+-                crate::lifecycle::error::FailureCategory::Validation,
+-                format!("failed to transition to Completed: {e}"),
+-            )
+-        })
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn persist_completed_state(
+     db: &StateDb,
+     state: &WorkflowState,
+     journal: &[EffectJournalEntry],
+ ) -> std::result::Result<(), LifecycleError> {
+     persist_state(db, state, journal).map_err(|e| {

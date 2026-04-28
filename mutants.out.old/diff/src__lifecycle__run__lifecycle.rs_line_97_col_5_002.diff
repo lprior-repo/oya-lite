@@ -1,0 +1,34 @@
+--- src/lifecycle/run/lifecycle.rs
++++ replace build_steps -> Vec<LifecycleStep> with vec![]
+@@ -89,30 +89,17 @@
+     progress: LifecycleProgress,
+ ) {
+     if tx.send(progress).await.is_err() {
+         warn!("progress channel closed, receiver dropped");
+     }
+ }
+ 
+ fn build_steps(request: &LifecycleRequest) -> Vec<LifecycleStep> {
+-    let workspace_step = LifecycleStep {
+-        name: StepName("workspace-prepare".to_owned()),
+-        effect: Effect::WorkspacePrepare {
+-            workspace: WorkspaceName(format!("workspace-{}", request.bead_id.as_str())),
+-            path: WorkspacePath(format!("../{}", request.bead_id.as_str())),
+-        },
+-    };
+-    match request.prompt.as_ref().filter(|p| !p.0.is_empty()) {
+-        Some(p) => vec![
+-            workspace_step,
+-            build_opencode_step(&request.bead_id, p, request.model.as_ref()),
+-        ],
+-        None => vec![workspace_step],
+-    }
++    vec![] /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn build_opencode_step(
+     bead_id: &BeadId,
+     prompt: &PromptString,
+     model: Option<&ModelId>,
+ ) -> LifecycleStep {
+     let resolved_model = match model {

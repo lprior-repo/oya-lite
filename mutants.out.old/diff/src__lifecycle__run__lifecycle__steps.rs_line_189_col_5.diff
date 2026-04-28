@@ -1,0 +1,21 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ replace append_to_journal -> Vec<EffectJournalEntry> with vec![]
+@@ -181,17 +181,17 @@
+         _ => run_effect(&executor, effect.clone(), cwd).await,
+     }
+ }
+ 
+ fn append_to_journal(
+     journal: Vec<EffectJournalEntry>,
+     entry: EffectJournalEntry,
+ ) -> Vec<EffectJournalEntry> {
+-    journal.into_iter().chain(std::iter::once(entry)).collect()
++    vec![] /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn on_step_success(
+     run: StepRun,
+     entry: EffectJournalEntry,
+     step_name: &StepName,
+     tx: &mpsc::Sender<LifecycleProgress>,
+ ) -> StepRun {

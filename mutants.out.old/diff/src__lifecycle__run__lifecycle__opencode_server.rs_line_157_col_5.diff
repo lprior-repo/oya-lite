@@ -1,0 +1,25 @@
+--- src/lifecycle/run/lifecycle/opencode_server.rs
++++ replace server_send_message -> std::result::Result<(StepResult, String), LifecycleError> with Ok((Default::default(), String::new()))
+@@ -149,21 +149,17 @@
+ }
+ 
+ async fn server_send_message(
+     config: &OpencodeServerConfig,
+     session_id: &str,
+     effect: &Effect,
+     client: &reqwest::Client,
+ ) -> std::result::Result<(StepResult, String), LifecycleError> {
+-    let (prompt, model, cwd) = parse_opencode_effect(effect)?;
+-    let message_body = build_message_body(prompt, model, cwd);
+-    let msg_url = build_message_url(config, session_id);
+-    let msg_resp = send_message(config, client, &msg_url, &message_body).await?;
+-    read_message_response(msg_resp).await
++    Ok((Default::default(), String::new())) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn build_message_url(config: &OpencodeServerConfig, session_id: &str) -> String {
+     format!(
+         "{}/session/{}/message",
+         config.url.as_str().trim_end_matches('/'),
+         session_id
+     )

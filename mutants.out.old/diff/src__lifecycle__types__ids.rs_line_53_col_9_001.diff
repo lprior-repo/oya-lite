@@ -1,0 +1,27 @@
+--- src/lifecycle/types/ids.rs
++++ replace <impl std::fmt::Display for BeadIdParseError>::fmt -> std::fmt::Result with Ok(Default::default())
+@@ -45,23 +45,17 @@
+ pub enum BeadIdParseError {
+     Empty,
+     TooLong { len: usize, max: usize },
+     InvalidChars,
+ }
+ 
+ impl std::fmt::Display for BeadIdParseError {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+-        match self {
+-            Self::Empty => write!(f, "bead id must not be empty"),
+-            Self::TooLong { len, max } => {
+-                write!(f, "bead id exceeds max length: {len} > {max}")
+-            }
+-            Self::InvalidChars => write!(f, "bead id contains invalid chars"),
+-        }
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ impl std::error::Error for BeadIdParseError {}
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+ pub struct BeadData {
+     pub bead_id: BeadId,

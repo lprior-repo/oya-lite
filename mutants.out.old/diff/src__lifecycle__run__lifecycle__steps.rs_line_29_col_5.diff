@@ -1,0 +1,28 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ replace execute_steps -> std::result::Result<StepRun, StepFailure> with Ok(Default::default())
+@@ -21,24 +21,17 @@
+ 
+ pub(super) async fn execute_steps(
+     executor: TokioCommandExecutor,
+     steps: &[LifecycleStep],
+     initial_state: WorkflowState,
+     tx: &mpsc::Sender<LifecycleProgress>,
+     server_config: Option<&OpencodeServerConfig>,
+ ) -> std::result::Result<StepRun, StepFailure> {
+-    let mut run = StepRun {
+-        workflow_state: initial_state,
+-        journal: Vec::new(),
+-    };
+-    for step in steps {
+-        run = execute_single_step(executor, step, run, tx, server_config).await?;
+-    }
+-    Ok(run)
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn handle_step_transition(
+     run: StepRun,
+     step_name: &StepName,
+     entry: &EffectJournalEntry,
+ ) -> Result<StepRun, StepFailure> {
+     if !entry.result.is_success() {

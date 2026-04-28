@@ -1,0 +1,33 @@
+--- src/lifecycle/state/persist.rs
++++ replace persist_state -> Result<()> with Ok(())
+@@ -6,29 +6,17 @@
+ use super::state_db::{Result, StateDb};
+ use crate::lifecycle::types::{BeadId, EffectJournalEntry, WorkflowState};
+ 
+ pub fn persist_state(
+     db: &StateDb,
+     state: &WorkflowState,
+     journal: &[EffectJournalEntry],
+ ) -> Result<()> {
+-    let bead_id = state.phase.bead_id();
+-    let state_json = serde_json::to_string(state)?;
+-    let journal_entries: Vec<(String, String)> = journal
+-        .iter()
+-        .map(|entry| {
+-            let key = db.next_journal_key(bead_id);
+-            let value = serde_json::to_string(entry)?;
+-            Ok((key, value))
+-        })
+-        .collect::<Result<Vec<_>>>()?;
+-    db.batch_persist_state(bead_id, &state_json, &journal_entries)?;
+-    db.flush()?;
+-    Ok(())
++    Ok(()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ #[allow(dead_code)]
+ pub fn load_state(
+     db: &StateDb,
+     bead_id: &BeadId,
+ ) -> Result<Option<(WorkflowState, Vec<EffectJournalEntry>)>> {
+     let state_json = db.load_workflow(bead_id)?;

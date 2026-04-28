@@ -1,0 +1,21 @@
+--- src/lifecycle/types/state_machine.rs
++++ replace Phase::is_terminal -> bool with false
+@@ -28,17 +28,17 @@
+         error: ErrorMessage,
+     },
+ }
+ 
+ impl Phase {
+     #[allow(dead_code)]
+     #[must_use]
+     pub fn is_terminal(&self) -> bool {
+-        matches!(self, Self::Completed { .. } | Self::Failed { .. })
++        false /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     #[must_use]
+     pub fn bead_id(&self) -> &BeadId {
+         match self {
+             Self::Planned { bead }
+             | Self::WorkspaceReady { bead }
+             | Self::Executing { bead, .. }

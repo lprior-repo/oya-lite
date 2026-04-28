@@ -1,0 +1,27 @@
+--- src/lifecycle/effects/run.rs
++++ replace effect_timeout_secs -> u64 with 0
+@@ -3,23 +3,17 @@
+ #![deny(clippy::panic)]
+ #![forbid(unsafe_code)]
+ 
+ use super::executor::{CommandExecutor, CommandFailure, CommandResult};
+ use crate::lifecycle::error::{FailureCategory, LifecycleError};
+ use crate::lifecycle::types::{Effect, EffectJournalEntry, StepResult};
+ 
+ pub fn effect_timeout_secs(effect: &Effect) -> u64 {
+-    match effect {
+-        Effect::WorkspacePrepare { .. } => 30,
+-        Effect::Jj { .. } => 120,
+-        Effect::MoonRun { .. } => 300,
+-        Effect::MoonCi { .. } => 600,
+-        Effect::Opencode { .. } => 3600,
+-    }
++    0 /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ pub fn classify_command_failure(failure: &CommandFailure) -> LifecycleError {
+     match failure {
+         CommandFailure::Timeout(_) => {
+             LifecycleError::transient(FailureCategory::Command, "command timed out")
+         }
+         CommandFailure::Io(_) => LifecycleError::transient(

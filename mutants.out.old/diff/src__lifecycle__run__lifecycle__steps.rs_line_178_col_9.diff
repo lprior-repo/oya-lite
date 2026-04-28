@@ -1,0 +1,23 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ delete match arm (crate::lifecycle::types::Effect::Opencode{..}, Some(cfg)) in dispatch_effect
+@@ -170,19 +170,17 @@
+ 
+ async fn dispatch_effect(
+     executor: TokioCommandExecutor,
+     effect: &crate::lifecycle::types::Effect,
+     server_config: Option<&OpencodeServerConfig>,
+ ) -> std::result::Result<EffectJournalEntry, LifecycleError> {
+     let cwd = effect.cwd().map(|p| p.0.clone());
+     match (effect, server_config) {
+-        (crate::lifecycle::types::Effect::Opencode { .. }, Some(cfg)) => {
+-            run_opencode_server(cfg, effect).await
+-        }
++         /* ~ changed by cargo-mutants ~ */
+         _ => run_effect(&executor, effect.clone(), cwd).await,
+     }
+ }
+ 
+ fn append_to_journal(
+     journal: Vec<EffectJournalEntry>,
+     entry: EffectJournalEntry,
+ ) -> Vec<EffectJournalEntry> {

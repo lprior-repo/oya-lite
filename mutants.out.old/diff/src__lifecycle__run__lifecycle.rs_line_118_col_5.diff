@@ -1,0 +1,32 @@
+--- src/lifecycle/run/lifecycle.rs
++++ replace build_opencode_step -> LifecycleStep with Default::default()
+@@ -110,28 +110,17 @@
+     }
+ }
+ 
+ fn build_opencode_step(
+     bead_id: &BeadId,
+     prompt: &PromptString,
+     model: Option<&ModelId>,
+ ) -> LifecycleStep {
+-    let resolved_model = match model {
+-        Some(m) => m.clone(),
+-        None => ModelId(DEFAULT_MODEL.to_owned()),
+-    };
+-    LifecycleStep {
+-        name: StepName("opencode-run".to_owned()),
+-        effect: Effect::Opencode {
+-            prompt: prompt.clone(),
+-            model: resolved_model,
+-            cwd: Some(WorkspacePath(format!("../{}", bead_id.as_str()))),
+-        },
+-    }
++    Default::default() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn persist_failure(db: &StateDb, failure: &StepFailure) -> LifecycleError {
+     let failed_state = failure
+         .partial_run
+         .workflow_state
+         .clone()
+         .with_transition(StateEvent::Failed(ErrorMessage(failure.error.to_string())));

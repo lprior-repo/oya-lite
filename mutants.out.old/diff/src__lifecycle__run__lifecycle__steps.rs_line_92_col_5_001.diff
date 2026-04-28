@@ -1,0 +1,27 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ replace execute_single_step -> std::result::Result<StepRun, StepFailure> with Ok(Default::default())
+@@ -84,23 +84,17 @@
+ 
+ async fn execute_single_step(
+     executor: TokioCommandExecutor,
+     step: &LifecycleStep,
+     mut run: StepRun,
+     tx: &mpsc::Sender<LifecycleProgress>,
+     server_config: Option<&OpencodeServerConfig>,
+ ) -> std::result::Result<StepRun, StepFailure> {
+-    let step_name = step.name.clone();
+-    run = start_step(run, &step_name, tx).await?;
+-    let entry = match dispatch_effect(executor, &step.effect, server_config).await {
+-        Ok(entry) => entry,
+-        Err(error) => return Err(on_dispatch_failure(run, &step_name, tx, error).await),
+-    };
+-    finish_step(run, entry, &step_name, tx).await
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn start_step(
+     mut run: StepRun,
+     step_name: &StepName,
+     tx: &mpsc::Sender<LifecycleProgress>,
+ ) -> std::result::Result<StepRun, StepFailure> {
+     run.workflow_state = run

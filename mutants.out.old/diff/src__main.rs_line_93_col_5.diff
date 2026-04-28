@@ -1,0 +1,26 @@
+--- src/main.rs
++++ replace run_request -> anyhow::Result<()> with Ok(())
+@@ -85,22 +85,17 @@
+         bead_id,
+         model: args.model.map(ModelId),
+         repo: args.repo.map(RepoUrl),
+         prompt: args.prompt.map(PromptString),
+     })
+ }
+ 
+ async fn run_request(orchestrator: &LifecycleOrchestrator, args: Args) -> anyhow::Result<()> {
+-    let request = build_request(args)?;
+-    let mut progress_rx = orchestrator.run_lifecycle(request).await?;
+-    if !drain_progress(&mut progress_rx).await {
+-        anyhow::bail!("lifecycle failed");
+-    }
+-    Ok(())
++    Ok(()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn drain_progress(rx: &mut tokio::sync::mpsc::Receiver<LifecycleProgress>) -> bool {
+     let mut succeeded = true;
+     while let Some(progress) = rx.recv().await {
+         succeeded = succeeded && progress_indicates_success(&progress);
+         match serde_json::to_string_pretty(&progress) {
+             Ok(json) => println!("{json}"),

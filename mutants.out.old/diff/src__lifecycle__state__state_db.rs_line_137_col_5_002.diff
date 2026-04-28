@@ -1,0 +1,24 @@
+--- src/lifecycle/state/state_db.rs
++++ replace timestamp_now -> u64 with 0
+@@ -129,20 +129,17 @@
+     pub fn next_journal_key(&self, bead_id: &BeadId) -> String {
+         next_journal_key(bead_id)
+     }
+ }
+ 
+ static JOURNAL_COUNTER: AtomicU64 = AtomicU64::new(0);
+ 
+ fn timestamp_now() -> u64 {
+-    match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+-        Ok(d) => d.as_millis() as u64,
+-        Err(_) => 0,
+-    }
++    0 /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn next_journal_key(bead_id: &BeadId) -> String {
+     let ts = timestamp_now();
+     let seq = JOURNAL_COUNTER.fetch_add(1, Ordering::SeqCst);
+     format!("{}_{ts:020}_{seq:010}", bead_id.as_str())
+ }
+ 

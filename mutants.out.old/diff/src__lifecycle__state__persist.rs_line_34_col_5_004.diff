@@ -1,0 +1,32 @@
+--- src/lifecycle/state/persist.rs
++++ replace load_state -> Result<Option<(WorkflowState, Vec<EffectJournalEntry>)>> with Ok(Some((Default::default(), vec![])))
+@@ -26,28 +26,10 @@
+     Ok(())
+ }
+ 
+ #[allow(dead_code)]
+ pub fn load_state(
+     db: &StateDb,
+     bead_id: &BeadId,
+ ) -> Result<Option<(WorkflowState, Vec<EffectJournalEntry>)>> {
+-    let state_json = db.load_workflow(bead_id)?;
+-    let journal_entries = db.load_journal(bead_id)?;
+-    match state_json {
+-        Some(json) => {
+-            let state: WorkflowState = serde_json::from_str(&json)?;
+-            let journal: Vec<EffectJournalEntry> = journal_entries
+-                .iter()
+-                .filter_map(|j| match serde_json::from_str(j) {
+-                    Ok(entry) => Some(entry),
+-                    Err(e) => {
+-                        tracing::warn!("corrupted journal entry for {bead_id:?}: {e}");
+-                        None
+-                    }
+-                })
+-                .collect();
+-            Ok(Some((state, journal)))
+-        }
+-        None => Ok(None),
+-    }
++    Ok(Some((Default::default(), vec![]))) /* ~ changed by cargo-mutants ~ */
+ }

@@ -1,0 +1,21 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ delete match arm "workspace-prepare" in workspace_ready_event
+@@ -58,17 +58,17 @@
+             journal,
+         }),
+         Err(error) => Err(step_transition_failure(prev_state, journal, error)),
+     }
+ }
+ 
+ fn workspace_ready_event(step_name: &StepName) -> Option<StateEvent> {
+     match step_name.as_str() {
+-        "workspace-prepare" => Some(StateEvent::WorkspaceReady),
++         /* ~ changed by cargo-mutants ~ */
+         _ => None,
+     }
+ }
+ 
+ fn step_transition_failure(
+     workflow_state: WorkflowState,
+     journal: Vec<EffectJournalEntry>,
+     error: LifecycleError,

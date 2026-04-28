@@ -1,0 +1,27 @@
+--- src/lifecycle/types/state_machine.rs
++++ replace Phase::bead_id -> &BeadId with Box::leak(Box::new(Default::default()))
+@@ -33,23 +33,17 @@
+     #[allow(dead_code)]
+     #[must_use]
+     pub fn is_terminal(&self) -> bool {
+         matches!(self, Self::Completed { .. } | Self::Failed { .. })
+     }
+ 
+     #[must_use]
+     pub fn bead_id(&self) -> &BeadId {
+-        match self {
+-            Self::Planned { bead }
+-            | Self::WorkspaceReady { bead }
+-            | Self::Executing { bead, .. }
+-            | Self::Completed { bead, .. } => &bead.bead_id,
+-            Self::Failed { bead_id, .. } => bead_id,
+-        }
++        Box::leak(Box::new(Default::default())) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq)]
+ pub enum StateEvent {
+     WorkspaceReady,
+     StepStarted(StepName),
+     Completed(StepResult),

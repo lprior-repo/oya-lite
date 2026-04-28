@@ -1,0 +1,23 @@
+--- src/lifecycle/effects/run.rs
++++ replace opencode_output_is_error -> bool with false
+@@ -33,19 +33,17 @@
+     result.is_success()
+         && match effect {
+             Effect::Opencode { .. } => !opencode_output_is_error(&result.stdout, &result.stderr),
+             _ => true,
+         }
+ }
+ 
+ pub fn opencode_output_is_error(stdout: &str, stderr: &str) -> bool {
+-    stdout.contains("\"type\":\"error\"")
+-        || stderr.contains("ProviderModelNotFoundError")
+-        || stderr.contains("Model not found")
++    false /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ pub async fn run_effect<E: CommandExecutor>(
+     executor: &E,
+     effect: Effect,
+     cwd: Option<String>,
+ ) -> std::result::Result<EffectJournalEntry, LifecycleError> {
+     let timeout_secs = effect_timeout_secs(&effect);

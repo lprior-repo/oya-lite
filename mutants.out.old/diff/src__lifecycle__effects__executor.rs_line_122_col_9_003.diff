@@ -1,0 +1,21 @@
+--- src/lifecycle/effects/executor.rs
++++ replace <impl CommandExecutor for TokioCommandExecutor>::execute -> std::pin::Pin<Box<dyn std::future::Future<Output = std::result::Result<CommandResult, CommandFailure>>+Send +'_, >, > with Pin::from(Box::new(Default::default()))
+@@ -114,17 +114,17 @@
+         timeout_secs: u64,
+     ) -> std::pin::Pin<
+         Box<
+             dyn std::future::Future<Output = std::result::Result<CommandResult, CommandFailure>>
+                 + Send
+                 + '_,
+         >,
+     > {
+-        Box::pin(Self::execute_impl(effect, cwd, timeout_secs))
++        Pin::from(Box::new(Default::default())) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ impl Default for TokioCommandExecutor {
+     fn default() -> Self {
+         Self::new()
+     }
+ }

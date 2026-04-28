@@ -1,0 +1,23 @@
+--- src/lifecycle/run/lifecycle/opencode_server.rs
++++ replace create_session_body -> serde_json::Value with Default::default()
+@@ -33,19 +33,17 @@
+                 crate::lifecycle::error::FailureCategory::Command,
+                 format!("opencode server session create failed: {e}"),
+             )
+         })?;
+     parse_session_response(session_resp).await
+ }
+ 
+ fn create_session_body(prompt: &PromptString) -> serde_json::Value {
+-    serde_json::json!({
+-        "title": format!("oya-lite: {}", prompt.as_str().len().min(40))
+-    })
++    Default::default() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn parse_session_response(
+     session_resp: reqwest::Response,
+ ) -> std::result::Result<String, LifecycleError> {
+     if !session_resp.status().is_success() {
+         let error_msg = read_error_body(session_resp).await;
+         return Err(LifecycleError::terminal(

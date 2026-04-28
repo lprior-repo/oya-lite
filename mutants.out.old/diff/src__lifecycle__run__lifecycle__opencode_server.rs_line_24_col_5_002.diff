@@ -1,0 +1,34 @@
+--- src/lifecycle/run/lifecycle/opencode_server.rs
++++ replace server_create_session -> std::result::Result<String, LifecycleError> with Ok(String::new())
+@@ -16,30 +16,17 @@
+     cwd: Option<&'a str>,
+ }
+ 
+ async fn server_create_session(
+     config: &OpencodeServerConfig,
+     prompt: &PromptString,
+     client: &reqwest::Client,
+ ) -> std::result::Result<String, LifecycleError> {
+-    let session_url = format!("{}/session", config.url.as_str().trim_end_matches('/'));
+-    let session_resp = client
+-        .post(&session_url)
+-        .basic_auth(config.username.as_str(), Some(config.password.as_str()))
+-        .json(&create_session_body(prompt))
+-        .send()
+-        .await
+-        .map_err(|e| {
+-            LifecycleError::transient(
+-                crate::lifecycle::error::FailureCategory::Command,
+-                format!("opencode server session create failed: {e}"),
+-            )
+-        })?;
+-    parse_session_response(session_resp).await
++    Ok(String::new()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn create_session_body(prompt: &PromptString) -> serde_json::Value {
+     serde_json::json!({
+         "title": format!("oya-lite: {}", prompt.as_str().len().min(40))
+     })
+ }
+ 

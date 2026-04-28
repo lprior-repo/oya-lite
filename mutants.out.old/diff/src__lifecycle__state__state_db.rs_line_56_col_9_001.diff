@@ -1,0 +1,24 @@
+--- src/lifecycle/state/state_db.rs
++++ replace StateDb::load_workflow -> Result<Option<String>> with Ok(Some(String::new()))
+@@ -48,20 +48,17 @@
+     #[allow(dead_code)]
+     pub fn persist_workflow(&self, bead_id: &BeadId, state_json: &str) -> Result<()> {
+         self.workflows.insert(bead_id.as_str(), state_json)?;
+         Ok(())
+     }
+ 
+     #[allow(dead_code)]
+     pub fn load_workflow(&self, bead_id: &BeadId) -> Result<Option<String>> {
+-        self.workflows
+-            .get(bead_id.as_str())
+-            .map_err(StateDbError::Fjall)
+-            .map(|opt| opt.and_then(|v| String::from_utf8(v.to_vec()).ok()))
++        Ok(Some(String::new())) /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     #[allow(dead_code)]
+     pub fn append_journal(&self, bead_id: &BeadId, entry_json: &str) -> Result<()> {
+         let key = next_journal_key(bead_id);
+         self.journal.insert(&key, entry_json)?;
+         Ok(())
+     }

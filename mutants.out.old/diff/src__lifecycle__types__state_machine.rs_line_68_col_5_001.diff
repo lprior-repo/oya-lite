@@ -1,0 +1,24 @@
+--- src/lifecycle/types/state_machine.rs
++++ replace transition_phase -> Result<Phase, LifecycleError> with Ok(Default::default())
+@@ -60,20 +60,17 @@
+ pub struct WorkflowState {
+     pub phase: Phase,
+     pub completed_steps: StepDeps,
+ }
+ 
+ pub type StepDeps = SmallVec<[StepName; SMALL_VEC_SIZE]>;
+ 
+ fn transition_phase(phase: &Phase, event: &StateEvent) -> Result<Phase, LifecycleError> {
+-    if let StateEvent::Failed(error) = event {
+-        return failed_transition(phase, error);
+-    }
+-    standard_transition(phase, event).ok_or_else(invalid_transition)
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn standard_transition(phase: &Phase, event: &StateEvent) -> Option<Phase> {
+     planned_workspace_ready(phase, event)
+         .or_else(|| step_started_transition(phase, event))
+         .or_else(|| executing_workspace_ready(phase, event))
+         .or_else(|| completed_transition(phase, event))
+ }

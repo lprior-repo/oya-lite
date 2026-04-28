@@ -1,0 +1,15 @@
+--- src/lifecycle/types/newtypes.rs
++++ replace StepResult::is_success -> bool with true
+@@ -71,11 +71,11 @@
+ pub enum StepResult {
+     Success,
+     Failure,
+ }
+ 
+ impl StepResult {
+     #[must_use]
+     pub fn is_success(self) -> bool {
+-        matches!(self, Self::Success)
++        true /* ~ changed by cargo-mutants ~ */
+     }
+ }

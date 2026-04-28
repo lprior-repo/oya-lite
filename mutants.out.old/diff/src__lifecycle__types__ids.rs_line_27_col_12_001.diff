@@ -1,0 +1,21 @@
+--- src/lifecycle/types/ids.rs
++++ delete ! in BeadId::parse
+@@ -19,17 +19,17 @@
+             return Err(BeadIdParseError::Empty);
+         }
+         if normalized.len() > MAX_BEAD_ID_LEN {
+             return Err(BeadIdParseError::TooLong {
+                 len: normalized.len(),
+                 max: MAX_BEAD_ID_LEN,
+             });
+         }
+-        if !normalized.chars().all(is_bead_char) {
++        if  /* ~ changed by cargo-mutants ~ */normalized.chars().all(is_bead_char) {
+             return Err(BeadIdParseError::InvalidChars);
+         }
+         Ok(Self(normalized.to_owned()))
+     }
+ }
+ 
+ impl std::fmt::Display for BeadId {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

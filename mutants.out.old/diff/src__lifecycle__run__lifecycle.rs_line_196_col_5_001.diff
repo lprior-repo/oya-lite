@@ -1,0 +1,28 @@
+--- src/lifecycle/run/lifecycle.rs
++++ replace send_finished_success with ()
+@@ -188,24 +188,17 @@
+     send_finished_success(tx).await;
+     let completed_state = transition_completed(run.workflow_state)?;
+     persist_completed_state(db, &completed_state, &run.journal)?;
+     info!("lifecycle completed for {:?}", bead_id);
+     Ok(())
+ }
+ 
+ async fn send_finished_success(tx: &mpsc::Sender<LifecycleProgress>) {
+-    send_progress(
+-        tx,
+-        LifecycleProgress::Finished {
+-            result: StepResult::Success,
+-            message: Some(ErrorMessage::from("all steps completed")),
+-        },
+-    )
+-    .await;
++    () /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn transition_completed(
+     state: WorkflowState,
+ ) -> std::result::Result<WorkflowState, LifecycleError> {
+     state
+         .with_transition(StateEvent::Completed(StepResult::Success))
+         .map_err(|e| {

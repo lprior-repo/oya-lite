@@ -1,0 +1,24 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ replace workspace_ready_event -> Option<StateEvent> with None
+@@ -57,20 +57,17 @@
+             workflow_state: state,
+             journal,
+         }),
+         Err(error) => Err(step_transition_failure(prev_state, journal, error)),
+     }
+ }
+ 
+ fn workspace_ready_event(step_name: &StepName) -> Option<StateEvent> {
+-    match step_name.as_str() {
+-        "workspace-prepare" => Some(StateEvent::WorkspaceReady),
+-        _ => None,
+-    }
++    None /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn step_transition_failure(
+     workflow_state: WorkflowState,
+     journal: Vec<EffectJournalEntry>,
+     error: LifecycleError,
+ ) -> StepFailure {
+     StepFailure {

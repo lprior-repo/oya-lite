@@ -1,0 +1,34 @@
+--- src/lifecycle/run/lifecycle.rs
++++ replace persist_failure -> LifecycleError with Default::default()
+@@ -125,30 +125,17 @@
+             prompt: prompt.clone(),
+             model: resolved_model,
+             cwd: Some(WorkspacePath(format!("../{}", bead_id.as_str()))),
+         },
+     }
+ }
+ 
+ async fn persist_failure(db: &StateDb, failure: &StepFailure) -> LifecycleError {
+-    let failed_state = failure
+-        .partial_run
+-        .workflow_state
+-        .clone()
+-        .with_transition(StateEvent::Failed(ErrorMessage(failure.error.to_string())));
+-    match failed_state {
+-        Ok(state) => {
+-            if let Err(e) = persist_state(db, &state, &failure.partial_run.journal) {
+-                error!("failed to persist failed state: {e}");
+-            }
+-        }
+-        Err(e) => error!("failed to transition to Failed phase: {e}"),
+-    }
+-    failure.error.clone()
++    Default::default() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn run_lifecycle_inner(
+     db: StateDb,
+     executor: TokioCommandExecutor,
+     server_config: Option<OpencodeServerConfig>,
+     request: LifecycleRequest,
+     tx: mpsc::Sender<LifecycleProgress>,

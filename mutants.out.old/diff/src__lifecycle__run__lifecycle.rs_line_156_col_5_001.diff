@@ -1,0 +1,29 @@
+--- src/lifecycle/run/lifecycle.rs
++++ replace run_lifecycle_inner -> std::result::Result<(), LifecycleError> with Ok(())
+@@ -148,25 +148,17 @@
+ 
+ async fn run_lifecycle_inner(
+     db: StateDb,
+     executor: TokioCommandExecutor,
+     server_config: Option<OpencodeServerConfig>,
+     request: LifecycleRequest,
+     tx: mpsc::Sender<LifecycleProgress>,
+ ) -> std::result::Result<(), LifecycleError> {
+-    let bead_id = request.bead_id.clone();
+-    let steps = build_steps(&request);
+-    let state = WorkflowState::new(bead_id.clone());
+-    send_initialized(&tx, &bead_id, &steps).await;
+-    let run = match execute_steps(executor, &steps, state, &tx, server_config.as_ref()).await {
+-        Ok(r) => r,
+-        Err(failure) => return Err(persist_failure(&db, &failure).await),
+-    };
+-    finish_lifecycle(&db, bead_id, run, &tx).await
++    Ok(()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn send_initialized(
+     tx: &mpsc::Sender<LifecycleProgress>,
+     bead_id: &BeadId,
+     steps: &[LifecycleStep],
+ ) {
+     send_progress(

@@ -1,0 +1,24 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ replace on_step_failure -> StepFailure with Default::default()
+@@ -211,20 +211,17 @@
+ }
+ 
+ async fn on_step_failure(
+     run: StepRun,
+     entry: EffectJournalEntry,
+     step_name: &StepName,
+     tx: &mpsc::Sender<LifecycleProgress>,
+ ) -> StepFailure {
+-    let failure_message = sanitize_failure_message(&entry);
+-    let journal = append_to_journal(run.journal, entry);
+-    send_step_failed(tx, step_name, &failure_message).await;
+-    build_step_failure(run.workflow_state, journal, failure_message)
++    Default::default() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn send_step_failed(
+     tx: &mpsc::Sender<LifecycleProgress>,
+     step_name: &StepName,
+     message: &str,
+ ) {
+     send_progress(

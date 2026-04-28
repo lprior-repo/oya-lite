@@ -1,0 +1,29 @@
+--- src/main.rs
++++ replace drain_progress -> bool with true
+@@ -94,25 +94,17 @@
+     let mut progress_rx = orchestrator.run_lifecycle(request).await?;
+     if !drain_progress(&mut progress_rx).await {
+         anyhow::bail!("lifecycle failed");
+     }
+     Ok(())
+ }
+ 
+ async fn drain_progress(rx: &mut tokio::sync::mpsc::Receiver<LifecycleProgress>) -> bool {
+-    let mut succeeded = true;
+-    while let Some(progress) = rx.recv().await {
+-        succeeded = succeeded && progress_indicates_success(&progress);
+-        match serde_json::to_string_pretty(&progress) {
+-            Ok(json) => println!("{json}"),
+-            Err(e) => eprintln!("failed to serialize progress: {e}"),
+-        }
+-    }
+-    succeeded
++    true /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn progress_indicates_success(progress: &LifecycleProgress) -> bool {
+     match progress {
+         LifecycleProgress::StepFailed { .. } => false,
+         LifecycleProgress::Finished { result, .. } => result.is_success(),
+         _ => true,
+     }

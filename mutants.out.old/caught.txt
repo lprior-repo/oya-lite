@@ -1,0 +1,246 @@
+src/main.rs:63:9: delete match arm (Some(url), Some(password)) in build_server_config
+src/main.rs:62:5: replace build_server_config -> anyhow::Result<Option<OpencodeServerConfig>> with Ok(None)
+src/main.rs:68:9: delete match arm (Some(_), None) in build_server_config
+src/main.rs:102:5: replace drain_progress -> bool with true
+src/main.rs:102:5: replace drain_progress -> bool with false
+src/main.rs:104:31: replace && with || in drain_progress
+src/main.rs:114:5: replace progress_indicates_success -> bool with true
+src/main.rs:114:5: replace progress_indicates_success -> bool with false
+src/main.rs:115:9: delete match arm LifecycleProgress::StepFailed{..} in progress_indicates_success
+src/main.rs:116:9: delete match arm LifecycleProgress::Finished{result, ..} in progress_indicates_success
+src/lifecycle/error.rs:65:9: replace LifecycleError::is_terminal -> bool with true
+src/lifecycle/error.rs:65:9: replace LifecycleError::is_terminal -> bool with false
+src/lifecycle/error.rs:79:9: replace LifecycleError::message -> &str with ""
+src/lifecycle/error.rs:79:9: replace LifecycleError::message -> &str with "xyzzy"
+src/lifecycle/error.rs:87:9: replace <impl std::fmt::Display for LifecycleError>::fmt -> std::fmt::Result with Ok(Default::default())
+src/lifecycle/error.rs:65:9: replace LifecycleError::is_terminal -> bool with false
+src/lifecycle/error.rs:65:9: replace LifecycleError::is_terminal -> bool with true
+src/lifecycle/error.rs:79:9: replace LifecycleError::message -> &str with ""
+src/lifecycle/error.rs:79:9: replace LifecycleError::message -> &str with "xyzzy"
+src/lifecycle/error.rs:87:9: replace <impl std::fmt::Display for LifecycleError>::fmt -> std::fmt::Result with Ok(Default::default())
+src/lifecycle/effects/executor.rs:23:9: replace CommandResult::is_success -> bool with true
+src/lifecycle/effects/executor.rs:23:9: replace CommandResult::is_success -> bool with false
+src/lifecycle/effects/executor.rs:23:26: replace == with != in CommandResult::is_success
+src/lifecycle/effects/run.rs:11:5: replace effect_timeout_secs -> u64 with 0
+src/lifecycle/effects/run.rs:11:5: replace effect_timeout_secs -> u64 with 1
+src/lifecycle/effects/run.rs:33:5: replace command_result_is_success -> bool with true
+src/lifecycle/effects/run.rs:33:5: replace command_result_is_success -> bool with false
+src/lifecycle/effects/run.rs:35:13: delete match arm Effect::Opencode{..} in command_result_is_success
+src/lifecycle/effects/run.rs:34:9: replace && with || in command_result_is_success
+src/lifecycle/effects/run.rs:35:40: delete ! in command_result_is_success
+src/lifecycle/effects/run.rs:41:5: replace opencode_output_is_error -> bool with true
+src/lifecycle/effects/run.rs:41:5: replace opencode_output_is_error -> bool with false
+src/lifecycle/effects/run.rs:43:9: replace || with && in opencode_output_is_error
+src/lifecycle/effects/run.rs:42:9: replace || with && in opencode_output_is_error
+src/lifecycle/run/lifecycle.rs:76:9: replace LifecycleOrchestrator::get_workflow_state -> std::result::Result<Option<WorkflowState>, LifecycleError> with Ok(None)
+src/lifecycle/run/lifecycle.rs:91:5: replace send_progress with ()
+src/lifecycle/run/lifecycle.rs:97:5: replace build_steps -> Vec<LifecycleStep> with vec![]
+src/lifecycle/run/lifecycle.rs:104:46: delete ! in build_steps
+src/lifecycle/run/lifecycle.rs:188:5: replace finish_lifecycle -> std::result::Result<(), LifecycleError> with Ok(())
+src/lifecycle/run/lifecycle.rs:156:5: replace run_lifecycle_inner -> std::result::Result<(), LifecycleError> with Ok(())
+src/lifecycle/run/lifecycle.rs:172:5: replace send_initialized with ()
+src/lifecycle/run/lifecycle.rs:196:5: replace send_finished_success with ()
+src/lifecycle/run/lifecycle.rs:224:5: replace persist_completed_state -> std::result::Result<(), LifecycleError> with Ok(())
+src/lifecycle/state/persist.rs:14:5: replace persist_state -> Result<()> with Ok(())
+src/lifecycle/state/persist.rs:34:5: replace load_state -> Result<Option<(WorkflowState, Vec<EffectJournalEntry>)>> with Ok(None)
+src/lifecycle/state/state_db.rs:50:9: replace StateDb::persist_workflow -> Result<()> with Ok(())
+src/lifecycle/state/state_db.rs:56:9: replace StateDb::load_workflow -> Result<Option<String>> with Ok(Some(String::new()))
+src/lifecycle/state/state_db.rs:56:9: replace StateDb::load_workflow -> Result<Option<String>> with Ok(None)
+src/lifecycle/state/state_db.rs:56:9: replace StateDb::load_workflow -> Result<Option<String>> with Ok(Some("xyzzy".into()))
+src/lifecycle/state/state_db.rs:64:9: replace StateDb::append_journal -> Result<()> with Ok(())
+src/lifecycle/state/state_db.rs:71:9: replace StateDb::load_journal -> Result<Vec<String>> with Ok(vec![])
+src/lifecycle/state/state_db.rs:71:9: replace StateDb::load_journal -> Result<Vec<String>> with Ok(vec![String::new()])
+src/lifecycle/state/state_db.rs:71:9: replace StateDb::load_journal -> Result<Vec<String>> with Ok(vec!["xyzzy".into()])
+src/lifecycle/state/state_db.rs:86:9: replace StateDb::list_workflow_ids -> Result<Vec<String>> with Ok(vec![])
+src/lifecycle/state/state_db.rs:86:9: replace StateDb::list_workflow_ids -> Result<Vec<String>> with Ok(vec![String::new()])
+src/lifecycle/state/state_db.rs:86:9: replace StateDb::list_workflow_ids -> Result<Vec<String>> with Ok(vec!["xyzzy".into()])
+src/lifecycle/state/state_db.rs:100:9: replace StateDb::delete_workflow -> Result<()> with Ok(())
+src/lifecycle/state/state_db.rs:120:9: replace StateDb::batch_persist_state -> Result<()> with Ok(())
+src/lifecycle/state/state_db.rs:130:9: replace StateDb::next_journal_key -> String with String::new()
+src/lifecycle/state/state_db.rs:144:5: replace next_journal_key -> String with String::new()
+src/lifecycle/state/state_db.rs:130:9: replace StateDb::next_journal_key -> String with "xyzzy".into()
+src/lifecycle/state/state_db.rs:137:5: replace timestamp_now -> u64 with 0
+src/lifecycle/state/state_db.rs:137:5: replace timestamp_now -> u64 with 1
+src/lifecycle/types/effects.rs:43:9: replace Effect::program -> &'static str with "xyzzy"
+src/lifecycle/types/effects.rs:43:9: replace Effect::program -> &'static str with ""
+src/lifecycle/state/state_db.rs:144:5: replace next_journal_key -> String with "xyzzy".into()
+src/lifecycle/types/effects.rs:52:9: replace Effect::cwd -> Option<&WorkspacePath> with None
+src/lifecycle/types/effects.rs:62:9: replace Effect::args -> Vec<String> with vec!["xyzzy".into()]
+src/lifecycle/types/effects.rs:62:9: replace Effect::args -> Vec<String> with vec![]
+src/lifecycle/types/effects.rs:62:9: replace Effect::args -> Vec<String> with vec![String::new()]
+src/lifecycle/types/ids.rs:13:9: replace BeadId::as_str -> &str with ""
+src/lifecycle/types/effects.rs:73:5: replace opencode_args -> Vec<String> with vec!["xyzzy".into()]
+src/lifecycle/types/effects.rs:73:5: replace opencode_args -> Vec<String> with vec![]
+src/lifecycle/types/effects.rs:73:5: replace opencode_args -> Vec<String> with vec![String::new()]
+src/lifecycle/types/ids.rs:13:9: replace BeadId::as_str -> &str with "xyzzy"
+src/lifecycle/types/ids.rs:21:29: replace > with == in BeadId::parse
+src/lifecycle/types/ids.rs:21:29: replace > with < in BeadId::parse
+src/lifecycle/types/ids.rs:21:29: replace > with >= in BeadId::parse
+src/lifecycle/types/ids.rs:27:12: delete ! in BeadId::parse
+src/lifecycle/types/ids.rs:41:5: replace is_bead_char -> bool with true
+src/lifecycle/types/ids.rs:41:5: replace is_bead_char -> bool with false
+src/lifecycle/types/ids.rs:36:9: replace <impl std::fmt::Display for BeadId>::fmt -> std::fmt::Result with Ok(Default::default())
+src/lifecycle/types/ids.rs:41:50: replace || with && in is_bead_char
+src/lifecycle/types/ids.rs:41:55: replace == with != in is_bead_char
+src/lifecycle/types/ids.rs:41:28: replace || with && in is_bead_char
+src/lifecycle/types/ids.rs:53:9: replace <impl std::fmt::Display for BeadIdParseError>::fmt -> std::fmt::Result with Ok(Default::default())
+src/lifecycle/types/newtypes.rs:58:9: replace <impl std::fmt::Debug for SensitiveString>::fmt -> std::fmt::Result with Ok(Default::default())
+src/lifecycle/types/newtypes.rs:79:9: replace StepResult::is_success -> bool with true
+src/lifecycle/types/newtypes.rs:65:9: replace SensitiveString::as_str -> &str with ""
+src/lifecycle/types/newtypes.rs:65:9: replace SensitiveString::as_str -> &str with "xyzzy"
+src/lifecycle/types/newtypes.rs:79:9: replace StepResult::is_success -> bool with false
+src/lifecycle/types/state_machine.rs:36:9: replace Phase::is_terminal -> bool with true
+src/lifecycle/types/state_machine.rs:75:5: replace standard_transition -> Option<Phase> with None
+src/lifecycle/types/state_machine.rs:36:9: replace Phase::is_terminal -> bool with false
+src/lifecycle/types/state_machine.rs:82:5: replace planned_workspace_ready -> Option<Phase> with None
+src/lifecycle/types/state_machine.rs:83:9: delete match arm (Phase::Planned{bead}, StateEvent::WorkspaceReady) in planned_workspace_ready
+src/lifecycle/types/state_machine.rs:91:5: replace step_started_transition -> Option<Phase> with None
+src/lifecycle/types/state_machine.rs:92:9: delete match arm (Phase::Planned{bead} | Phase::WorkspaceReady{bead} | Phase::Executing{bead, ..}, StateEvent::StepStarted(step),) in step_started_transition
+src/lifecycle/types/state_machine.rs:106:5: replace executing_workspace_ready -> Option<Phase> with None
+src/lifecycle/types/state_machine.rs:115:5: replace completed_transition -> Option<Phase> with None
+src/lifecycle/types/state_machine.rs:107:9: delete match arm (Phase::Executing{bead, ..}, StateEvent::WorkspaceReady) in executing_workspace_ready
+src/lifecycle/types/state_machine.rs:116:9: delete match arm (Phase::WorkspaceReady{bead} | Phase::Executing{bead, ..}, StateEvent::Completed(result),) in completed_transition
+src/lifecycle/effects/executor.rs:23:9: replace CommandResult::is_success -> bool with true
+src/lifecycle/effects/executor.rs:23:9: replace CommandResult::is_success -> bool with false
+src/lifecycle/effects/executor.rs:23:26: replace == with != in CommandResult::is_success
+src/lifecycle/effects/run.rs:11:5: replace effect_timeout_secs -> u64 with 0
+src/lifecycle/effects/run.rs:11:5: replace effect_timeout_secs -> u64 with 1
+src/lifecycle/effects/run.rs:33:5: replace command_result_is_success -> bool with true
+src/lifecycle/effects/run.rs:33:5: replace command_result_is_success -> bool with false
+src/lifecycle/effects/run.rs:34:9: replace && with || in command_result_is_success
+src/lifecycle/effects/run.rs:35:13: delete match arm Effect::Opencode{..} in command_result_is_success
+src/lifecycle/effects/run.rs:35:40: delete ! in command_result_is_success
+src/lifecycle/effects/run.rs:41:5: replace opencode_output_is_error -> bool with true
+src/lifecycle/effects/run.rs:41:5: replace opencode_output_is_error -> bool with false
+src/lifecycle/effects/run.rs:43:9: replace || with && in opencode_output_is_error
+src/lifecycle/effects/run.rs:42:9: replace || with && in opencode_output_is_error
+src/lifecycle/run/lifecycle.rs:76:9: replace LifecycleOrchestrator::get_workflow_state -> std::result::Result<Option<WorkflowState>, LifecycleError> with Ok(None)
+src/lifecycle/run/lifecycle.rs:91:5: replace send_progress with ()
+src/lifecycle/run/lifecycle.rs:97:5: replace build_steps -> Vec<LifecycleStep> with vec![]
+src/lifecycle/run/lifecycle.rs:104:46: delete ! in build_steps
+src/lifecycle/run/lifecycle.rs:156:5: replace run_lifecycle_inner -> std::result::Result<(), LifecycleError> with Ok(())
+src/lifecycle/run/lifecycle.rs:172:5: replace send_initialized with ()
+src/lifecycle/run/lifecycle.rs:188:5: replace finish_lifecycle -> std::result::Result<(), LifecycleError> with Ok(())
+src/lifecycle/run/lifecycle.rs:196:5: replace send_finished_success with ()
+src/lifecycle/state/persist.rs:34:5: replace load_state -> Result<Option<(WorkflowState, Vec<EffectJournalEntry>)>> with Ok(None)
+src/lifecycle/state/persist.rs:14:5: replace persist_state -> Result<()> with Ok(())
+src/lifecycle/run/lifecycle.rs:224:5: replace persist_completed_state -> std::result::Result<(), LifecycleError> with Ok(())
+src/lifecycle/state/state_db.rs:50:9: replace StateDb::persist_workflow -> Result<()> with Ok(())
+src/lifecycle/state/state_db.rs:56:9: replace StateDb::load_workflow -> Result<Option<String>> with Ok(None)
+src/lifecycle/state/state_db.rs:56:9: replace StateDb::load_workflow -> Result<Option<String>> with Ok(Some(String::new()))
+src/lifecycle/state/state_db.rs:56:9: replace StateDb::load_workflow -> Result<Option<String>> with Ok(Some("xyzzy".into()))
+src/lifecycle/state/state_db.rs:64:9: replace StateDb::append_journal -> Result<()> with Ok(())
+src/lifecycle/state/state_db.rs:71:9: replace StateDb::load_journal -> Result<Vec<String>> with Ok(vec![])
+src/lifecycle/state/state_db.rs:71:9: replace StateDb::load_journal -> Result<Vec<String>> with Ok(vec![String::new()])
+src/lifecycle/state/state_db.rs:71:9: replace StateDb::load_journal -> Result<Vec<String>> with Ok(vec!["xyzzy".into()])
+src/lifecycle/state/state_db.rs:86:9: replace StateDb::list_workflow_ids -> Result<Vec<String>> with Ok(vec![])
+src/lifecycle/state/state_db.rs:86:9: replace StateDb::list_workflow_ids -> Result<Vec<String>> with Ok(vec![String::new()])
+src/lifecycle/state/state_db.rs:86:9: replace StateDb::list_workflow_ids -> Result<Vec<String>> with Ok(vec!["xyzzy".into()])
+src/lifecycle/state/state_db.rs:100:9: replace StateDb::delete_workflow -> Result<()> with Ok(())
+src/lifecycle/state/state_db.rs:120:9: replace StateDb::batch_persist_state -> Result<()> with Ok(())
+src/lifecycle/state/state_db.rs:130:9: replace StateDb::next_journal_key -> String with String::new()
+src/lifecycle/state/state_db.rs:144:5: replace next_journal_key -> String with String::new()
+src/lifecycle/state/state_db.rs:130:9: replace StateDb::next_journal_key -> String with "xyzzy".into()
+src/lifecycle/state/state_db.rs:137:5: replace timestamp_now -> u64 with 0
+src/lifecycle/state/state_db.rs:137:5: replace timestamp_now -> u64 with 1
+src/lifecycle/types/effects.rs:43:9: replace Effect::program -> &'static str with ""
+src/lifecycle/types/effects.rs:43:9: replace Effect::program -> &'static str with "xyzzy"
+src/lifecycle/state/state_db.rs:144:5: replace next_journal_key -> String with "xyzzy".into()
+src/lifecycle/types/effects.rs:62:9: replace Effect::args -> Vec<String> with vec!["xyzzy".into()]
+src/lifecycle/types/effects.rs:52:9: replace Effect::cwd -> Option<&WorkspacePath> with None
+src/lifecycle/types/effects.rs:62:9: replace Effect::args -> Vec<String> with vec![]
+src/lifecycle/types/effects.rs:62:9: replace Effect::args -> Vec<String> with vec![String::new()]
+src/lifecycle/types/ids.rs:13:9: replace BeadId::as_str -> &str with ""
+src/lifecycle/types/effects.rs:73:5: replace opencode_args -> Vec<String> with vec!["xyzzy".into()]
+src/lifecycle/types/effects.rs:73:5: replace opencode_args -> Vec<String> with vec![]
+src/lifecycle/types/effects.rs:73:5: replace opencode_args -> Vec<String> with vec![String::new()]
+src/lifecycle/types/ids.rs:13:9: replace BeadId::as_str -> &str with "xyzzy"
+src/lifecycle/types/ids.rs:21:29: replace > with == in BeadId::parse
+src/lifecycle/types/ids.rs:21:29: replace > with >= in BeadId::parse
+src/lifecycle/types/ids.rs:21:29: replace > with < in BeadId::parse
+src/lifecycle/types/ids.rs:27:12: delete ! in BeadId::parse
+src/lifecycle/types/ids.rs:41:5: replace is_bead_char -> bool with true
+src/lifecycle/types/ids.rs:41:5: replace is_bead_char -> bool with false
+src/lifecycle/types/ids.rs:36:9: replace <impl std::fmt::Display for BeadId>::fmt -> std::fmt::Result with Ok(Default::default())
+src/lifecycle/types/ids.rs:41:50: replace || with && in is_bead_char
+src/lifecycle/types/ids.rs:41:55: replace == with != in is_bead_char
+src/lifecycle/types/ids.rs:41:28: replace || with && in is_bead_char
+src/lifecycle/types/ids.rs:53:9: replace <impl std::fmt::Display for BeadIdParseError>::fmt -> std::fmt::Result with Ok(Default::default())
+src/lifecycle/types/newtypes.rs:58:9: replace <impl std::fmt::Debug for SensitiveString>::fmt -> std::fmt::Result with Ok(Default::default())
+src/lifecycle/types/newtypes.rs:79:9: replace StepResult::is_success -> bool with true
+src/lifecycle/types/newtypes.rs:65:9: replace SensitiveString::as_str -> &str with "xyzzy"
+src/lifecycle/types/newtypes.rs:65:9: replace SensitiveString::as_str -> &str with ""
+src/lifecycle/types/newtypes.rs:79:9: replace StepResult::is_success -> bool with false
+src/lifecycle/types/state_machine.rs:36:9: replace Phase::is_terminal -> bool with true
+src/lifecycle/types/state_machine.rs:75:5: replace standard_transition -> Option<Phase> with None
+src/lifecycle/types/state_machine.rs:82:5: replace planned_workspace_ready -> Option<Phase> with None
+src/lifecycle/types/state_machine.rs:36:9: replace Phase::is_terminal -> bool with false
+src/lifecycle/types/state_machine.rs:83:9: delete match arm (Phase::Planned{bead}, StateEvent::WorkspaceReady) in planned_workspace_ready
+src/lifecycle/types/state_machine.rs:91:5: replace step_started_transition -> Option<Phase> with None
+src/lifecycle/types/state_machine.rs:92:9: delete match arm (Phase::Planned{bead} | Phase::WorkspaceReady{bead} | Phase::Executing{bead, ..}, StateEvent::StepStarted(step),) in step_started_transition
+src/lifecycle/types/state_machine.rs:106:5: replace executing_workspace_ready -> Option<Phase> with None
+src/lifecycle/types/state_machine.rs:107:9: delete match arm (Phase::Executing{bead, ..}, StateEvent::WorkspaceReady) in executing_workspace_ready
+src/lifecycle/types/state_machine.rs:115:5: replace completed_transition -> Option<Phase> with None
+src/lifecycle/types/state_machine.rs:116:9: delete match arm (Phase::WorkspaceReady{bead} | Phase::Executing{bead, ..}, StateEvent::Completed(result),) in completed_transition
+src/lifecycle/run/lifecycle/opencode_server.rs:24:5: replace server_create_session -> std::result::Result<String, LifecycleError> with Ok(String::new())
+src/lifecycle/run/lifecycle/opencode_server.rs:24:5: replace server_create_session -> std::result::Result<String, LifecycleError> with Ok("xyzzy".into())
+src/lifecycle/run/lifecycle/opencode_server.rs:41:5: replace create_session_body -> serde_json::Value with Default::default()
+src/lifecycle/run/lifecycle/opencode_server.rs:49:5: replace parse_session_response -> std::result::Result<String, LifecycleError> with Ok(String::new())
+src/lifecycle/run/lifecycle/opencode_server.rs:49:5: replace parse_session_response -> std::result::Result<String, LifecycleError> with Ok("xyzzy".into())
+src/lifecycle/run/lifecycle/opencode_server.rs:60:5: replace read_error_body -> String with String::new()
+src/lifecycle/run/lifecycle/opencode_server.rs:49:8: delete ! in parse_session_response
+src/lifecycle/run/lifecycle/opencode_server.rs:60:5: replace read_error_body -> String with "xyzzy".into()
+src/lifecycle/run/lifecycle/opencode_server.rs:72:5: replace extract_session_id -> std::result::Result<String, LifecycleError> with Ok("xyzzy".into())
+src/lifecycle/run/lifecycle/opencode_server.rs:72:5: replace extract_session_id -> std::result::Result<String, LifecycleError> with Ok(String::new())
+src/lifecycle/run/lifecycle/opencode_server.rs:113:9: delete match arm Effect::Opencode{prompt, model, cwd} in parse_opencode_effect
+src/lifecycle/run/lifecycle/opencode_server.rs:143:41: replace && with || in parse_message_response
+src/lifecycle/run/lifecycle/opencode_server.rs:143:44: delete ! in parse_message_response
+src/lifecycle/run/lifecycle/opencode_server.rs:165:5: replace build_message_url -> String with String::new()
+src/lifecycle/run/lifecycle/opencode_server.rs:165:5: replace build_message_url -> String with "xyzzy".into()
+src/lifecycle/run/lifecycle/opencode_server.rs:222:5: replace journal_stdout -> String with String::new()
+src/lifecycle/run/lifecycle/opencode_server.rs:222:5: replace journal_stdout -> String with "xyzzy".into()
+src/lifecycle/run/lifecycle/opencode_server.rs:230:5: replace journal_stderr -> String with String::new()
+src/lifecycle/run/lifecycle/opencode_server.rs:230:5: replace journal_stderr -> String with "xyzzy".into()
+src/lifecycle/run/lifecycle/steps.rs:44:8: delete ! in handle_step_transition
+src/lifecycle/run/lifecycle/steps.rs:65:5: replace workspace_ready_event -> Option<StateEvent> with None
+src/lifecycle/run/lifecycle/steps.rs:66:9: delete match arm "workspace-prepare" in workspace_ready_event
+src/lifecycle/run/lifecycle/steps.rs:116:5: replace send_step_started with ()
+src/lifecycle/run/lifecycle/steps.rs:189:5: replace append_to_journal -> Vec<EffectJournalEntry> with vec![]
+src/lifecycle/run/lifecycle/steps.rs:230:5: replace send_step_failed with ()
+src/lifecycle/run/lifecycle/steps.rs:258:5: replace sanitize_failure_message -> String with String::new()
+src/lifecycle/run/lifecycle/steps.rs:268:5: replace first_nonempty_line -> Option<&str> with None
+src/lifecycle/run/lifecycle/steps.rs:258:5: replace sanitize_failure_message -> String with "xyzzy".into()
+src/lifecycle/run/lifecycle/steps.rs:268:5: replace first_nonempty_line -> Option<&str> with Some("")
+src/lifecycle/run/lifecycle/steps.rs:268:5: replace first_nonempty_line -> Option<&str> with Some("xyzzy")
+src/lifecycle/run/lifecycle/steps.rs:268:30: delete ! in first_nonempty_line
+src/lifecycle/run/lifecycle/opencode_server.rs:24:5: replace server_create_session -> std::result::Result<String, LifecycleError> with Ok(String::new())
+src/lifecycle/run/lifecycle/opencode_server.rs:24:5: replace server_create_session -> std::result::Result<String, LifecycleError> with Ok("xyzzy".into())
+src/lifecycle/run/lifecycle/opencode_server.rs:41:5: replace create_session_body -> serde_json::Value with Default::default()
+src/lifecycle/run/lifecycle/opencode_server.rs:49:5: replace parse_session_response -> std::result::Result<String, LifecycleError> with Ok(String::new())
+src/lifecycle/run/lifecycle/opencode_server.rs:49:5: replace parse_session_response -> std::result::Result<String, LifecycleError> with Ok("xyzzy".into())
+src/lifecycle/run/lifecycle/opencode_server.rs:49:8: delete ! in parse_session_response
+src/lifecycle/run/lifecycle/opencode_server.rs:60:5: replace read_error_body -> String with String::new()
+src/lifecycle/run/lifecycle/opencode_server.rs:60:5: replace read_error_body -> String with "xyzzy".into()
+src/lifecycle/run/lifecycle/opencode_server.rs:72:5: replace extract_session_id -> std::result::Result<String, LifecycleError> with Ok(String::new())
+src/lifecycle/run/lifecycle/opencode_server.rs:72:5: replace extract_session_id -> std::result::Result<String, LifecycleError> with Ok("xyzzy".into())
+src/lifecycle/run/lifecycle/opencode_server.rs:113:9: delete match arm Effect::Opencode{prompt, model, cwd} in parse_opencode_effect
+src/lifecycle/run/lifecycle/opencode_server.rs:143:44: delete ! in parse_message_response
+src/lifecycle/run/lifecycle/opencode_server.rs:143:41: replace && with || in parse_message_response
+src/lifecycle/run/lifecycle/opencode_server.rs:165:5: replace build_message_url -> String with String::new()
+src/lifecycle/run/lifecycle/opencode_server.rs:165:5: replace build_message_url -> String with "xyzzy".into()
+src/lifecycle/run/lifecycle/opencode_server.rs:222:5: replace journal_stdout -> String with String::new()
+src/lifecycle/run/lifecycle/opencode_server.rs:222:5: replace journal_stdout -> String with "xyzzy".into()
+src/lifecycle/run/lifecycle/opencode_server.rs:230:5: replace journal_stderr -> String with String::new()
+src/lifecycle/run/lifecycle/opencode_server.rs:230:5: replace journal_stderr -> String with "xyzzy".into()
+src/lifecycle/run/lifecycle/steps.rs:44:8: delete ! in handle_step_transition
+src/lifecycle/run/lifecycle/steps.rs:65:5: replace workspace_ready_event -> Option<StateEvent> with None
+src/lifecycle/run/lifecycle/steps.rs:66:9: delete match arm "workspace-prepare" in workspace_ready_event
+src/lifecycle/run/lifecycle/steps.rs:189:5: replace append_to_journal -> Vec<EffectJournalEntry> with vec![]
+src/lifecycle/run/lifecycle/steps.rs:116:5: replace send_step_started with ()
+src/lifecycle/run/lifecycle/steps.rs:230:5: replace send_step_failed with ()
+src/lifecycle/run/lifecycle/steps.rs:258:5: replace sanitize_failure_message -> String with String::new()
+src/lifecycle/run/lifecycle/steps.rs:258:5: replace sanitize_failure_message -> String with "xyzzy".into()
+src/lifecycle/run/lifecycle/steps.rs:268:5: replace first_nonempty_line -> Option<&str> with None
+src/lifecycle/run/lifecycle/steps.rs:268:5: replace first_nonempty_line -> Option<&str> with Some("")
+src/lifecycle/run/lifecycle/steps.rs:268:5: replace first_nonempty_line -> Option<&str> with Some("xyzzy")
+src/lifecycle/run/lifecycle/steps.rs:268:30: delete ! in first_nonempty_line

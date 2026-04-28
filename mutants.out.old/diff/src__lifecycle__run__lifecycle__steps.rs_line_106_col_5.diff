@@ -1,0 +1,27 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ replace start_step -> std::result::Result<StepRun, StepFailure> with Ok(Default::default())
+@@ -98,23 +98,17 @@
+     finish_step(run, entry, &step_name, tx).await
+ }
+ 
+ async fn start_step(
+     mut run: StepRun,
+     step_name: &StepName,
+     tx: &mpsc::Sender<LifecycleProgress>,
+ ) -> std::result::Result<StepRun, StepFailure> {
+-    run.workflow_state = run
+-        .workflow_state
+-        .clone()
+-        .with_transition(StateEvent::StepStarted(step_name.clone()))
+-        .map_err(|e| to_step_failure(&run, e))?;
+-    send_step_started(tx, step_name).await;
+-    Ok(run)
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn send_step_started(tx: &mpsc::Sender<LifecycleProgress>, step_name: &StepName) {
+     send_progress(
+         tx,
+         LifecycleProgress::StepStarted {
+             step: step_name.clone(),
+             started_at: Timestamp(chrono::Utc::now().to_rfc3339()),

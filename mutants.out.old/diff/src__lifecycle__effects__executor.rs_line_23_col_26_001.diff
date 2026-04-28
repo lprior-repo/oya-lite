@@ -1,0 +1,21 @@
+--- src/lifecycle/effects/executor.rs
++++ replace == with != in CommandResult::is_success
+@@ -15,17 +15,17 @@
+     pub status_code: Option<i32>,
+     pub stdout: String,
+     pub stderr: String,
+ }
+ 
+ impl CommandResult {
+     #[must_use]
+     pub fn is_success(&self) -> bool {
+-        self.status_code == Some(0)
++        self.status_code != /* ~ changed by cargo-mutants ~ */ Some(0)
+     }
+ }
+ 
+ #[derive(Debug, Error)]
+ pub enum CommandFailure {
+     #[error("timeout after {0:?}")]
+     Timeout(Duration),
+     #[error("io error: {0}")]

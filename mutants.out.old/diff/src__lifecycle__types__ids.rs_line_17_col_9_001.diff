@@ -1,0 +1,34 @@
+--- src/lifecycle/types/ids.rs
++++ replace BeadId::parse -> Result<Self, BeadIdParseError> with Ok(Default::default())
+@@ -9,30 +9,17 @@
+ 
+ impl BeadId {
+     #[must_use]
+     pub fn as_str(&self) -> &str {
+         &self.0
+     }
+ 
+     pub fn parse(input: &str) -> Result<Self, BeadIdParseError> {
+-        let normalized = input.trim();
+-        if normalized.is_empty() {
+-            return Err(BeadIdParseError::Empty);
+-        }
+-        if normalized.len() > MAX_BEAD_ID_LEN {
+-            return Err(BeadIdParseError::TooLong {
+-                len: normalized.len(),
+-                max: MAX_BEAD_ID_LEN,
+-            });
+-        }
+-        if !normalized.chars().all(is_bead_char) {
+-            return Err(BeadIdParseError::InvalidChars);
+-        }
+-        Ok(Self(normalized.to_owned()))
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ impl std::fmt::Display for BeadId {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+         write!(f, "{}", self.0)
+     }
+ }

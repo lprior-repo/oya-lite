@@ -1,0 +1,22 @@
+--- src/lifecycle/state/state_db.rs
++++ replace StateDb::flush -> Result<()> with Ok(())
+@@ -97,18 +97,17 @@
+ 
+     #[allow(dead_code)]
+     pub fn delete_workflow(&self, bead_id: &BeadId) -> Result<()> {
+         self.workflows.remove(bead_id.as_str())?;
+         Ok(())
+     }
+ 
+     pub fn flush(&self) -> Result<()> {
+-        self.db.persist(PersistMode::SyncAll)?;
+-        Ok(())
++        Ok(()) /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     #[allow(dead_code)]
+     pub fn snapshot(&self) -> fjall::Snapshot {
+         self.db.snapshot()
+     }
+ 
+     pub fn batch_persist_state(

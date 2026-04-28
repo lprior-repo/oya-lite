@@ -1,0 +1,25 @@
+--- src/lifecycle/run/lifecycle/opencode_server.rs
++++ replace journal_stdout -> String with "xyzzy".into()
+@@ -214,21 +214,17 @@
+         timeout_secs: OPENCODE_TIMEOUT_SECS,
+         result,
+         stdout: journal_stdout(&result, &msg_body),
+         stderr: journal_stderr(&result, msg_body),
+     }
+ }
+ 
+ fn journal_stdout(result: &StepResult, msg_body: &str) -> String {
+-    if result.is_success() {
+-        msg_body.to_owned()
+-    } else {
+-        String::new()
+-    }
++    "xyzzy".into() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn journal_stderr(result: &StepResult, msg_body: String) -> String {
+     if result.is_success() {
+         String::new()
+     } else {
+         msg_body
+     }

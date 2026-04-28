@@ -1,0 +1,28 @@
+--- src/lifecycle/run/lifecycle/opencode_server.rs
++++ replace send_message -> std::result::Result<reqwest::Response, LifecycleError> with Ok(Default::default())
+@@ -170,24 +170,17 @@
+ }
+ 
+ async fn send_message(
+     config: &OpencodeServerConfig,
+     client: &reqwest::Client,
+     msg_url: &str,
+     message_body: &OpencodeMessageBody<'_>,
+ ) -> std::result::Result<reqwest::Response, LifecycleError> {
+-    send_opencode_request(
+-        client,
+-        msg_url,
+-        &config.username,
+-        &config.password,
+-        message_body,
+-    )
+-    .await
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn read_message_response(
+     msg_resp: reqwest::Response,
+ ) -> std::result::Result<(StepResult, String), LifecycleError> {
+     let msg_status = msg_resp.status();
+     let msg_body = msg_resp.text().await.map_err(|e| {
+         LifecycleError::transient(

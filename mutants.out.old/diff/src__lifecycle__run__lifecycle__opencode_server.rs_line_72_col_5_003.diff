@@ -1,0 +1,36 @@
+--- src/lifecycle/run/lifecycle/opencode_server.rs
++++ replace extract_session_id -> std::result::Result<String, LifecycleError> with Ok("xyzzy".into())
+@@ -64,32 +64,17 @@
+     };
+     let body = body.chars().take(200).collect::<String>();
+     format!("opencode server returned {status}: {body}")
+ }
+ 
+ async fn extract_session_id(
+     session_resp: reqwest::Response,
+ ) -> std::result::Result<String, LifecycleError> {
+-    let session_data: serde_json::Value = session_resp.json().await.map_err(|e| {
+-        LifecycleError::terminal(
+-            crate::lifecycle::error::FailureCategory::Command,
+-            format!("failed to parse session response: {e}"),
+-        )
+-    })?;
+-    session_data
+-        .get("id")
+-        .and_then(|v| v.as_str())
+-        .map(str::to_owned)
+-        .ok_or_else(|| {
+-            LifecycleError::terminal(
+-                crate::lifecycle::error::FailureCategory::Command,
+-                "opencode server response missing session id",
+-            )
+-        })
++    Ok("xyzzy".into()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn build_message_body<'a>(
+     prompt: &'a PromptString,
+     model: &'a ModelId,
+     cwd: Option<&'a WorkspacePath>,
+ ) -> OpencodeMessageBody<'a> {
+     let parts = model.as_str().split('/').collect::<Vec<_>>();

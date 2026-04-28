@@ -1,0 +1,27 @@
+--- src/lifecycle/types/effects.rs
++++ replace Effect::args -> Vec<String> with vec![]
+@@ -54,23 +54,17 @@
+             Self::Jj { cwd, .. }
+             | Self::MoonRun { cwd, .. }
+             | Self::MoonCi { cwd, .. }
+             | Self::Opencode { cwd, .. } => cwd.as_ref(),
+         }
+     }
+ 
+     pub fn args(&self) -> Vec<String> {
+-        match self {
+-            Self::WorkspacePrepare { path, .. } => vec!["-p".to_owned(), path.0.clone()],
+-            Self::Jj { args, .. } => args.0.clone(),
+-            Self::MoonRun { task, .. } => vec!["run".to_owned(), task.0.clone()],
+-            Self::MoonCi { .. } => vec!["run".to_owned(), ":ci".to_owned()],
+-            Self::Opencode { prompt, model, .. } => opencode_args(prompt, model),
+-        }
++        vec![] /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ fn opencode_args(prompt: &PromptString, model: &ModelId) -> Vec<String> {
+     vec![
+         "run".to_owned(),
+         "--format".to_owned(),
+         "json".to_owned(),

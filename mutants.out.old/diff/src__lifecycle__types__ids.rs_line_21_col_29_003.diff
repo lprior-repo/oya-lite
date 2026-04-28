@@ -1,0 +1,21 @@
+--- src/lifecycle/types/ids.rs
++++ replace > with == in BeadId::parse
+@@ -13,17 +13,17 @@
+         &self.0
+     }
+ 
+     pub fn parse(input: &str) -> Result<Self, BeadIdParseError> {
+         let normalized = input.trim();
+         if normalized.is_empty() {
+             return Err(BeadIdParseError::Empty);
+         }
+-        if normalized.len() > MAX_BEAD_ID_LEN {
++        if normalized.len() == /* ~ changed by cargo-mutants ~ */ MAX_BEAD_ID_LEN {
+             return Err(BeadIdParseError::TooLong {
+                 len: normalized.len(),
+                 max: MAX_BEAD_ID_LEN,
+             });
+         }
+         if !normalized.chars().all(is_bead_char) {
+             return Err(BeadIdParseError::InvalidChars);
+         }

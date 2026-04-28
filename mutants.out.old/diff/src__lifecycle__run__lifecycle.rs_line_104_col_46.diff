@@ -1,0 +1,21 @@
+--- src/lifecycle/run/lifecycle.rs
++++ delete ! in build_steps
+@@ -96,17 +96,17 @@
+ fn build_steps(request: &LifecycleRequest) -> Vec<LifecycleStep> {
+     let workspace_step = LifecycleStep {
+         name: StepName("workspace-prepare".to_owned()),
+         effect: Effect::WorkspacePrepare {
+             workspace: WorkspaceName(format!("workspace-{}", request.bead_id.as_str())),
+             path: WorkspacePath(format!("../{}", request.bead_id.as_str())),
+         },
+     };
+-    match request.prompt.as_ref().filter(|p| !p.0.is_empty()) {
++    match request.prompt.as_ref().filter(|p|  /* ~ changed by cargo-mutants ~ */p.0.is_empty()) {
+         Some(p) => vec![
+             workspace_step,
+             build_opencode_step(&request.bead_id, p, request.model.as_ref()),
+         ],
+         None => vec![workspace_step],
+     }
+ }
+ 

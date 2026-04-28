@@ -1,0 +1,27 @@
+--- src/lifecycle/types/ids.rs
++++ replace BeadData::from_bead_id -> Self with Default::default()
+@@ -68,23 +68,17 @@
+     pub workspace: WorkspaceName,
+     pub workspace_path: WorkspacePath,
+     pub bookmark: BookmarkName,
+ }
+ 
+ impl BeadData {
+     #[must_use]
+     pub fn from_bead_id(bead_id: BeadId) -> Self {
+-        let id_str = bead_id.as_str();
+-        Self {
+-            workspace: WorkspaceName(format!("workspace-{id_str}")),
+-            workspace_path: WorkspacePath(format!("../{id_str}")),
+-            bookmark: BookmarkName(format!("bead-{id_str}")),
+-            bead_id,
+-        }
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+ 
+     #[test]

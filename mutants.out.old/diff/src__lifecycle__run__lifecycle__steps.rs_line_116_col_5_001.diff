@@ -1,0 +1,28 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ replace send_step_started with ()
+@@ -108,24 +108,17 @@
+         .clone()
+         .with_transition(StateEvent::StepStarted(step_name.clone()))
+         .map_err(|e| to_step_failure(&run, e))?;
+     send_step_started(tx, step_name).await;
+     Ok(run)
+ }
+ 
+ async fn send_step_started(tx: &mpsc::Sender<LifecycleProgress>, step_name: &StepName) {
+-    send_progress(
+-        tx,
+-        LifecycleProgress::StepStarted {
+-            step: step_name.clone(),
+-            started_at: Timestamp(chrono::Utc::now().to_rfc3339()),
+-        },
+-    )
+-    .await;
++    () /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ async fn finish_step(
+     run: StepRun,
+     entry: EffectJournalEntry,
+     step_name: &StepName,
+     tx: &mpsc::Sender<LifecycleProgress>,
+ ) -> std::result::Result<StepRun, StepFailure> {

@@ -1,0 +1,21 @@
+--- src/main.rs
++++ delete ! in run_request
+@@ -87,17 +87,17 @@
+         repo: args.repo.map(RepoUrl),
+         prompt: args.prompt.map(PromptString),
+     })
+ }
+ 
+ async fn run_request(orchestrator: &LifecycleOrchestrator, args: Args) -> anyhow::Result<()> {
+     let request = build_request(args)?;
+     let mut progress_rx = orchestrator.run_lifecycle(request).await?;
+-    if !drain_progress(&mut progress_rx).await {
++    if  /* ~ changed by cargo-mutants ~ */drain_progress(&mut progress_rx).await {
+         anyhow::bail!("lifecycle failed");
+     }
+     Ok(())
+ }
+ 
+ async fn drain_progress(rx: &mut tokio::sync::mpsc::Receiver<LifecycleProgress>) -> bool {
+     let mut succeeded = true;
+     while let Some(progress) = rx.recv().await {

@@ -1,0 +1,27 @@
+--- src/lifecycle/run/lifecycle/steps.rs
++++ replace sanitize_failure_message -> String with "xyzzy".into()
+@@ -250,23 +250,17 @@
+         error: LifecycleError::terminal(
+             crate::lifecycle::error::FailureCategory::Command,
+             failure_message,
+         ),
+     }
+ }
+ 
+ fn sanitize_failure_message(entry: &EffectJournalEntry) -> String {
+-    if opencode_output_is_error(&entry.stdout, &entry.stderr) {
+-        return "opencode model not found or unavailable".to_owned();
+-    }
+-    match first_nonempty_line(&entry.stderr).or_else(|| first_nonempty_line(&entry.stdout)) {
+-        Some(line) => line.to_owned(),
+-        None => "command failed without diagnostic output".to_owned(),
+-    }
++    "xyzzy".into() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn first_nonempty_line(text: &str) -> Option<&str> {
+     text.lines().find(|line| !line.trim().is_empty())
+ }
+ 
+ // ─── TESTS ───────────────────────────────────────────────────────────────────
+ 
