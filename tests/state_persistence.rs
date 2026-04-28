@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
 use oya_lite::lifecycle::error::LifecycleError;
 use oya_lite::lifecycle::state::{load_state, persist_state, StateDb};
 use oya_lite::lifecycle::types::{

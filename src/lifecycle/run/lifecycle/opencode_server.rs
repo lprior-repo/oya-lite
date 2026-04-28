@@ -640,7 +640,7 @@ mod tests {
             let (mut socket, _) = listener.accept().await.unwrap();
             // Read the HTTP request (reqwest sends ~200 bytes for a POST)
             let mut buf = [0u8; 1024];
-            let n = socket.read(&mut buf).await.unwrap();
+            let _ = socket.read(&mut buf).await.unwrap();
             // Write a valid HTTP response with JSON missing "id" field
             let response = b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 15\r\n\r\n{\"no_id\": \"here\"}";
             socket.write_all(response).await.unwrap();

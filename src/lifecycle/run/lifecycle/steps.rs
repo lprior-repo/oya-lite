@@ -275,7 +275,7 @@ fn first_nonempty_line(text: &str) -> Option<&str> {
 mod tests {
    use super::*;
    use crate::lifecycle::types::{
-        BeadId, Effect, EffectJournalEntry, ErrorMessage, LifecycleProgress, ModelId, OpencodeUrl,
+        BeadId, Effect, EffectJournalEntry, LifecycleProgress, ModelId, OpencodeUrl,
         OpencodeServerConfig, Phase, PromptString, SensitiveString, StateEvent, StepName,
         StepResult, Username, WorkflowState, WorkspaceName, WorkspacePath,
     };

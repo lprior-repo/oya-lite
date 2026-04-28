@@ -639,10 +639,7 @@ mod tests {
             rx.recv(),
         )
         .await;
-        let progress = match progress {
-            Ok(p) => p,
-            Err(_) => None,
-        };
+        let progress = progress.unwrap_or_default();
         assert!(
             progress.is_some(),
             "send_finished_success must actually send a progress message"
