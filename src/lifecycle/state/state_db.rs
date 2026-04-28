@@ -145,3 +145,62 @@ fn next_journal_key(bead_id: &BeadId) -> String {
     let seq = JOURNAL_COUNTER.fetch_add(1, Ordering::SeqCst);
     format!("{}_{ts:020}_{seq:010}", bead_id.as_str())
 }
+
+// ─── TESTS ───────────────────────────────────────────────────────────────────
+
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lifecycle::types::{BeadId, WorkflowState};
+
+    #[test]
+    fn timestamp_now_returns_real_value() {
+        let ts = timestamp_now();
+        assert!(ts > 1, "timestamp_now must return epoch ms, not a constant");
+    }
+
+    #[test]
+    fn persist_workflow_writes_data() {
+        // Target: StateDb::persist_workflow → Ok(()) mutant
+        let dir = tempfile::tempdir().unwrap();
+        let db = StateDb::open(dir.path().join("db")).unwrap();
+        let bead_id = BeadId::parse("wf-persist").unwrap();
+        let state_json = serde_json::to_string(&WorkflowState::new(bead_id.clone())).unwrap();
+        db.persist_workflow(&bead_id, &state_json).unwrap();
+        let loaded = db.load_workflow(&bead_id).unwrap();
+        assert!(loaded.is_some(), "persist_workflow must actually write to Fjall");
+    }
+
+    #[test]
+    fn append_journal_writes_data() {
+        // Target: StateDb::append_journal → Ok(()) mutant
+        let dir = tempfile::tempdir().unwrap();
+        let db = StateDb::open(dir.path().join("db")).unwrap();
+        let bead_id = BeadId::parse("j-persist").unwrap();
+        db.append_journal(&bead_id, "j1").unwrap();
+        db.append_journal(&bead_id, "j2").unwrap();
+        let entries = db.load_journal(&bead_id).unwrap();
+        assert_eq!(entries.len(), 2, "append_journal must actually write entries");
+    }
+
+    #[test]
+    fn flush_persists_data() {
+        let dir = tempfile::tempdir().unwrap();
+        let db = StateDb::open(dir.path().join("db")).unwrap();
+        let bead_id = BeadId::parse("flush-test").unwrap();
+        db.persist_workflow(&bead_id, "{\"phase\":\"planned\"}").unwrap();
+        db.flush().unwrap();
+        drop(db);
+        let db2 = StateDb::open(dir.path().join("db")).unwrap();
+        let loaded = db2.load_workflow(&bead_id).unwrap();
+        assert!(loaded.is_some(), "flush must persist data so it survives DB close/reopen");
+    }
+
+    #[test]
+    fn flush_without_persist_still_closes_cleanly() {
+        let dir = tempfile::tempdir().unwrap();
+        let db = StateDb::open(dir.path().join("db")).unwrap();
+        db.flush().unwrap();
+    }
+}

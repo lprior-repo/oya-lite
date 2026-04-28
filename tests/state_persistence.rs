@@ -161,7 +161,7 @@ fn state_db_journal_entries_per_workflow() -> Result<(), Box<dyn std::error::Err
     Ok(())
 }
 
-#[test]
+ #[test]
 fn state_db_delete_workflow() -> Result<(), Box<dyn std::error::Error>> {
     let dir = TempDir::new()?;
     let db = StateDb::open(dir.path().join("db"))?;
@@ -173,5 +173,54 @@ fn state_db_delete_workflow() -> Result<(), Box<dyn std::error::Error>> {
     db.delete_workflow(&bead_id)?;
     let loaded = load_state(&db, &bead_id)?;
     assert!(loaded.is_none());
+    Ok(())
+}
+
+// ── Tests to kill StateDb mutation survivors ──
+
+#[test]
+fn persist_workflow_writes_to_database() -> Result<(), Box<dyn std::error::Error>> {
+    // This test targets the mutant: StateDb::persist_workflow → Ok(())
+    // If the mutation replaces the body with Ok(()), load_workflow returns None.
+    let dir = TempDir::new()?;
+    let db = StateDb::open(dir.path().join("db"))?;
+
+    let bead_id = BeadId::parse("persist-wf")?;
+    let state_json = serde_json::to_string(&WorkflowState::new(bead_id.clone()))?;
+    db.persist_workflow(&bead_id, &state_json)?;
+
+    let loaded = db.load_workflow(&bead_id)?;
+    assert!(loaded.is_some(), "persist_workflow must actually write to Fjall");
+    let loaded_state: WorkflowState = serde_json::from_str(&loaded.unwrap())?;
+    assert!(matches!(loaded_state.phase, Phase::Planned { .. }));
+    Ok(())
+}
+
+#[test]
+fn append_journal_persists_entries() -> Result<(), Box<dyn std::error::Error>> {
+    // This test targets the mutant: StateDb::append_journal → Ok(())
+    // If the mutation replaces the body with Ok(()), load_journal returns empty.
+    let dir = TempDir::new()?;
+    let db = StateDb::open(dir.path().join("db"))?;
+
+    let bead_id = BeadId::parse("append-j")?;
+    db.append_journal(&bead_id, "entry-1")?;
+    db.append_journal(&bead_id, "entry-2")?;
+
+    let entries = db.load_journal(&bead_id)?;
+    assert_eq!(entries.len(), 2, "append_journal must actually write journal entries");
+    Ok(())
+}
+
+#[test]
+fn flush_completes_without_error() -> Result<(), Box<dyn std::error::Error>> {
+    // This test targets the mutant: StateDb::flush → Ok(())
+    // flush must not panic or return Err. It exercises the persistence layer.
+    let dir = TempDir::new()?;
+    let db = StateDb::open(dir.path().join("db"))?;
+
+    let bead_id = BeadId::parse("flush-test")?;
+    db.persist_workflow(&bead_id, "{\"phase\":\"planned\"}")?;
+    db.flush()?;
     Ok(())
 }

@@ -262,6 +262,7 @@ mod tests {
         JjArgs, ModelId, OpencodeUrl, PromptString, SensitiveString, Username, OPENCODE_TIMEOUT_SECS,
     };
     use reqwest::StatusCode;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     fn config() -> OpencodeServerConfig {
         OpencodeServerConfig {
@@ -626,5 +627,105 @@ mod tests {
     #[test]
     fn journal_stderr_returns_body_on_failure() {
         assert_eq!(journal_stderr(&StepResult::Failure, "error".to_string()), "error");
+    }
+
+    // ── Tests to kill mutation survivors ──
+
+    #[tokio::test]
+    async fn run_opencode_server_rejects_missing_session_id() {
+        // Create a mock HTTP server that returns JSON without an "id" field
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let server_handle = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            // Read the HTTP request (reqwest sends ~200 bytes for a POST)
+            let mut buf = [0u8; 1024];
+            let n = socket.read(&mut buf).await.unwrap();
+            // Write a valid HTTP response with JSON missing "id" field
+            let response = b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 15\r\n\r\n{\"no_id\": \"here\"}";
+            socket.write_all(response).await.unwrap();
+            // Close the socket to signal EOF to the client
+            let _ = socket.shutdown().await;
+        });
+
+        let cfg = OpencodeServerConfig {
+            url: OpencodeUrl(format!("http://{addr}")),
+            username: Username("u".into()),
+            password: SensitiveString("p".into()),
+        };
+        let effect = Effect::Opencode {
+            prompt: PromptString("test".into()),
+            model: ModelId("gpt-4".into()),
+            cwd: None,
+        };
+        let result = run_opencode_server(&cfg, &effect).await;
+        assert!(result.is_err(), "should reject response missing session id");
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("session id") || err.to_string().contains("parse session response"));
+        server_handle.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn run_opencode_server_rejects_non_success_session_response() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let server_handle = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut buf = [0u8; 1024];
+            let _ = socket.read(&mut buf).await.unwrap();
+            let response = b"HTTP/1.1 401 Unauthorized\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nUnauthorized";
+            socket.write_all(response).await.unwrap();
+            let _ = socket.shutdown().await;
+        });
+
+        let cfg = OpencodeServerConfig {
+            url: OpencodeUrl(format!("http://{addr}")),
+            username: Username("u".into()),
+            password: SensitiveString("p".into()),
+        };
+        let effect = Effect::Opencode {
+            prompt: PromptString("test".into()),
+            model: ModelId("gpt-4".into()),
+            cwd: None,
+        };
+        let result = run_opencode_server(&cfg, &effect).await;
+        assert!(result.is_err(), "should reject non-success session response");
+        let err = result.unwrap_err();
+        let err_str = err.to_string();
+        assert!(err_str.contains("401") || err_str.contains("Unauthorized"),
+            "error message must contain HTTP status/body from read_error_body, got: {err_str}");
+        server_handle.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn run_opencode_server_rejects_500_error() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let server_handle = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut buf = [0u8; 1024];
+            let _ = socket.read(&mut buf).await.unwrap();
+            let response = b"HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\nContent-Length: 15\r\n\r\nserver crashed!";
+            socket.write_all(response).await.unwrap();
+            let _ = socket.shutdown().await;
+        });
+
+        let cfg = OpencodeServerConfig {
+            url: OpencodeUrl(format!("http://{addr}")),
+            username: Username("u".into()),
+            password: SensitiveString("p".into()),
+        };
+        let effect = Effect::Opencode {
+            prompt: PromptString("test".into()),
+            model: ModelId("gpt-4".into()),
+            cwd: None,
+        };
+        let result = run_opencode_server(&cfg, &effect).await;
+        assert!(result.is_err(), "should reject 500 server error");
+        let err = result.unwrap_err();
+        let err_str = err.to_string();
+        assert!(err_str.contains("500") && err_str.contains("server crashed"),
+            "error must contain 500 status and body from read_error_body, got: {err_str}");
+        server_handle.await.unwrap();
     }
 }

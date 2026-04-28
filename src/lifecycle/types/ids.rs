@@ -88,7 +88,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_bead_id_parse_empty_error() -> Result<(), Box<dyn std::error::Error>> {
+    fn bead_id_parse_rejects_empty_input_with_empty_variant() -> Result<(), Box<dyn std::error::Error>> {
         let result = BeadId::parse("");
         assert!(result.is_err());
         match result {
@@ -98,7 +98,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bead_id_parse_too_long_error() -> Result<(), Box<dyn std::error::Error>> {
+    fn bead_id_parse_rejects_sixty_five_chars_with_too_long_variant() -> Result<(), Box<dyn std::error::Error>> {
         let long_id = "a".repeat(65);
         let result = BeadId::parse(&long_id);
         assert!(result.is_err());
@@ -109,7 +109,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bead_id_parse_invalid_chars_error() -> Result<(), Box<dyn std::error::Error>> {
+    fn bead_id_parse_rejects_uppercase_with_invalid_chars_variant() -> Result<(), Box<dyn std::error::Error>> {
         let result = BeadId::parse("valid-id_UPPERCASE");
         assert!(result.is_err());
         match result {
@@ -119,7 +119,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bead_id_parse_invalid_chars_space() -> Result<(), Box<dyn std::error::Error>> {
+    fn bead_id_parse_rejects_whitespace_with_invalid_chars_variant() -> Result<(), Box<dyn std::error::Error>> {
         let result = BeadId::parse("invalid id");
         assert!(result.is_err());
         match result {
@@ -129,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bead_id_parse_max_length_edge() -> Result<(), Box<dyn std::error::Error>> {
+    fn bead_id_parse_accepts_sixty_four_chars_at_maximum_length() -> Result<(), Box<dyn std::error::Error>> {
         let max_id = "a".repeat(64);
         let result = BeadId::parse(&max_id)?;
         assert_eq!(result.as_str().len(), 64);
@@ -137,7 +137,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bead_id_parse_just_under_max() -> Result<(), Box<dyn std::error::Error>> {
+    fn bead_id_parse_accepts_sixty_three_chars_below_maximum() -> Result<(), Box<dyn std::error::Error>> {
         let id = "a".repeat(63);
         let result = BeadId::parse(&id)?;
         assert_eq!(result.as_str().len(), 63);
@@ -145,7 +145,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bead_id_parse_whitespace_only_trims_to_empty() -> Result<(), Box<dyn std::error::Error>> {
+    fn bead_id_parse_rejects_whitespace_only_as_empty_variant() -> Result<(), Box<dyn std::error::Error>> {
         let result = BeadId::parse("   ");
         assert!(result.is_err());
         match result {
@@ -155,14 +155,14 @@ mod tests {
     }
 
     #[test]
-    fn test_bead_id_error_display_empty() {
+    fn bead_id_parse_error_display_empty_contains_error_message() {
         let err = BeadIdParseError::Empty;
         let s = format!("{err}");
         assert!(s.contains("empty"));
     }
 
     #[test]
-    fn test_bead_id_error_display_too_long() {
+    fn bead_id_parse_error_display_too_long_contains_lengths() {
         let err = BeadIdParseError::TooLong { len: 100, max: 64 };
         let s = format!("{err}");
         assert!(s.contains("100"));
@@ -170,14 +170,14 @@ mod tests {
     }
 
     #[test]
-    fn test_bead_id_error_display_invalid_chars() {
+    fn bead_id_parse_error_display_invalid_chars_contains_error_message() {
         let err = BeadIdParseError::InvalidChars;
         let s = format!("{err}");
         assert!(s.contains("invalid"));
     }
 
     #[test]
-    fn test_bead_data_from_bead_id() -> Result<(), Box<dyn std::error::Error>> {
+    fn bead_data_from_bead_id_correlates_workspace_to_bead_identifier() -> Result<(), Box<dyn std::error::Error>> {
         let id = BeadId::parse("test-bead")?;
         let data = BeadData::from_bead_id(id.clone());
         assert_eq!(data.bead_id, id);

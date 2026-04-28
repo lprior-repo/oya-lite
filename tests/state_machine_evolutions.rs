@@ -245,3 +245,43 @@ fn effect_journal_entry_serde() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(entry.timeout_secs, back.timeout_secs);
     Ok(())
 }
+
+// ── Tests to kill mutation survivors ──
+
+#[test]
+fn non_terminal_phases_are_not_terminal() -> Result<(), Box<dyn std::error::Error>> {
+    let id = parse_bead_id("not-term")?;
+    let planned = Phase::Planned { bead: BeadData::from_bead_id(id.clone()) };
+    assert!(!planned.is_terminal());
+    let ws_ready = Phase::WorkspaceReady { bead: BeadData::from_bead_id(id.clone()) };
+    assert!(!ws_ready.is_terminal());
+    let executing = Phase::Executing { bead: BeadData::from_bead_id(id), step: "s".into() };
+    assert!(!executing.is_terminal());
+    Ok(())
+}
+
+#[test]
+fn executing_plus_workspace_ready_transitions_to_workspace_ready() -> Result<(), Box<dyn std::error::Error>> {
+    let id = parse_bead_id("exec-ws")?;
+    let state = WorkflowState::new(id.clone())
+        .with_transition(StateEvent::WorkspaceReady)?
+        .with_transition(StateEvent::StepStarted("s".into()))?;
+    assert!(matches!(state.phase, Phase::Executing { .. }));
+    let next = state.with_transition(StateEvent::WorkspaceReady)?;
+    assert!(matches!(next.phase, Phase::WorkspaceReady { .. }));
+    Ok(())
+}
+
+#[test]
+fn invalid_transition_from_completed_returns_terminal_error() -> Result<(), Box<dyn std::error::Error>> {
+    let id = parse_bead_id("comp-invalid")?;
+    let state = WorkflowState::new(id)
+        .with_transition(StateEvent::WorkspaceReady)?
+        .with_transition(StateEvent::Completed(StepResult::Success))?;
+    assert!(state.phase.is_terminal());
+    let result = state.with_transition(StateEvent::StepStarted("extra".into()));
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(err.to_string().contains("invalid state transition"));
+    Ok(())
+}

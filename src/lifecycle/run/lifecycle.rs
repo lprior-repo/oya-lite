@@ -428,4 +428,263 @@ mod tests {
         assert!(request.repo.is_none());
         assert!(request.prompt.is_none());
     }
+
+    // ── Tests to kill mutation survivors ──
+
+    #[tokio::test]
+    async fn finish_lifecycle_persists_state() {
+        // Targets: persist_completed_state → Ok(()) and finish_lifecycle → Ok(())
+        // If either function returns Ok(()) without actually persisting,
+        // load_state will return None and this test fails.
+        use crate::lifecycle::state::load_state;
+
+        let dir = tempfile::tempdir().unwrap();
+        let db = StateDb::open(dir.path().join("db")).unwrap();
+        let id = BeadId::parse("fin-lf").unwrap();
+        let state = WorkflowState::new(id.clone())
+            .with_transition(StateEvent::WorkspaceReady)
+            .unwrap()
+            .with_advanced_step(StepName("s1".into()));
+
+        let run = StepRun {
+            workflow_state: state,
+            journal: vec![],
+        };
+
+        let (tx, _rx) = tokio::sync::mpsc::channel(10);
+
+        // finish_lifecycle calls persist_completed_state which calls persist_state
+        let result = finish_lifecycle(&db, id.clone(), run, &tx).await;
+        assert!(result.is_ok(), "finish_lifecycle should succeed");
+
+        // Verify the state was actually persisted (not swallowed by Ok(()) mutation)
+        let loaded = load_state(&db, &id).unwrap();
+        assert!(loaded.is_some(), "finish_lifecycle must persist state to database");
+        let (loaded_state, _) = loaded.unwrap();
+        assert!(matches!(loaded_state.phase, Phase::Completed { .. }));
+    }
+
+    #[tokio::test]
+    async fn persist_completed_state_writes_to_db() {
+        // Targets: persist_completed_state → Ok(()) mutation
+        let dir = tempfile::tempdir().unwrap();
+        let db = StateDb::open(dir.path().join("db")).unwrap();
+
+        let id = BeadId::parse("pcs-test").unwrap();
+        let state = WorkflowState::new(id.clone())
+            .with_transition(StateEvent::WorkspaceReady)
+            .unwrap()
+            .with_transition(StateEvent::Completed(StepResult::Success))
+            .unwrap();
+
+        persist_completed_state(&db, &state, &[]).unwrap();
+
+        let loaded = load_state(&db, &id).unwrap();
+        assert!(loaded.is_some(), "persist_completed_state must write to database");
+    }
+
+    #[allow(clippy::manual_unwrap_or_default)]
+    #[tokio::test]
+    async fn send_initialized_sends_progress() {
+        // Targets: send_initialized → () mutation
+        let (tx, mut rx) = tokio::sync::mpsc::channel(10);
+        let id = BeadId::parse("si-test").unwrap();
+        send_initialized(&tx, &id, &[]).await;
+
+        let progress = tokio::time::timeout(
+            std::time::Duration::from_millis(500),
+            rx.recv(),
+        )
+        .await;
+        let progress = match progress {
+            Ok(p) => p,
+            Err(_) => None,
+        };
+        assert!(progress.is_some(), "send_initialized must actually send progress");
+        match progress.unwrap() {
+            LifecycleProgress::Initialized { bead_id, steps } => {
+                assert_eq!(bead_id, id);
+                assert!(steps.is_empty());
+            }
+            _ => panic!("expected Initialized progress"),
+        }
+    }
+
+    #[allow(clippy::manual_unwrap_or_default)]
+    #[tokio::test]
+    async fn send_progress_sends_message() {
+        // Targets: send_progress → () mutation
+        let (tx, mut rx) = tokio::sync::mpsc::channel(10);
+        send_progress(
+            &tx,
+            LifecycleProgress::Finished {
+                result: StepResult::Success,
+                message: None,
+            },
+        )
+        .await;
+
+        let progress = tokio::time::timeout(
+            std::time::Duration::from_millis(500),
+            rx.recv(),
+        )
+        .await;
+        let progress = match progress {
+            Ok(p) => p,
+            Err(_) => None,
+        };
+        assert!(progress.is_some(), "send_progress must actually send progress");
+    }
+
+    #[tokio::test]
+    async fn get_workflow_state_returns_persisted_state() {
+        // Targets: get_workflow_state → Ok(None) mutation
+        use crate::lifecycle::state::persist_state;
+
+        let dir = tempfile::tempdir().unwrap();
+        let db = StateDb::open(dir.path().join("db")).unwrap();
+        let id = BeadId::parse("gws-test").unwrap();
+        let state = WorkflowState::new(id.clone())
+            .with_transition(StateEvent::WorkspaceReady)
+            .unwrap()
+            .with_advanced_step(StepName("s1".into()));
+
+        persist_state(&db, &state, &[]).unwrap();
+
+        let orchestrator = LifecycleOrchestrator {
+            db,
+            executor: TokioCommandExecutor::new(),
+            server_config: None,
+        };
+
+        let result = orchestrator.get_workflow_state(&id);
+        assert!(
+            result.is_ok(),
+            "get_workflow_state should return Ok when state exists"
+        );
+        let workflow_state = result.unwrap();
+        assert!(
+            workflow_state.is_some(),
+            "get_workflow_state must return the persisted state, not Ok(None)"
+        );
+        assert_eq!(workflow_state.unwrap().completed_steps.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn run_lifecycle_inner_persists_state() {
+        // Targets: run_lifecycle_inner → Ok(()) mutation
+        // If the function returns Ok(()) without executing steps and finishing,
+        // load_state will return None and this test fails.
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("db");
+
+        let id = BeadId::parse("rli-test").unwrap();
+        let request = LifecycleRequest {
+            bead_id: id.clone(),
+            model: None,
+            repo: None,
+            prompt: None,
+        };
+        let (tx, mut rx) = tokio::sync::mpsc::channel(10);
+
+        // Spawn a background task to drain the channel so send operations don't block
+        let drain = tokio::spawn(async move {
+            while rx.recv().await.is_some() {}
+        });
+
+        let orchestrator = LifecycleOrchestrator::new(LifecycleConfig {
+            data_dir: crate::lifecycle::types::DataDirPath(db_path.to_string_lossy().to_string()),
+            opencode_server: None,
+        })
+        .unwrap();
+
+        // Extract the fields for direct call to run_lifecycle_inner
+        // We need to move them because run_lifecycle_inner takes ownership
+        let db = orchestrator.db;
+        let executor = orchestrator.executor;
+        let server_config = orchestrator.server_config;
+
+        let result = tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            run_lifecycle_inner(db, executor, server_config, request, tx),
+        )
+        .await;
+
+        // The test should complete within the timeout
+        assert!(result.is_ok(), "run_lifecycle_inner should complete within 10s");
+
+        // Re-open the DB to check persisted state
+        let db2 = StateDb::open(db_path).unwrap();
+        let workflow_state = load_state(&db2, &id)
+            .unwrap()
+            .map(|(s, _)| s)
+            .expect("run_lifecycle_inner must persist state to database");
+
+        assert!(
+            matches!(workflow_state.phase, Phase::Completed { .. }),
+            "state should be Completed after run_lifecycle_inner"
+        );
+
+        let _ = drain.await;
+    }
+
+    #[tokio::test]
+    async fn send_finished_success_sends_finished_message() {
+        // Targets: send_finished_success → () mutation
+        let (tx, mut rx) = tokio::sync::mpsc::channel(10);
+        send_finished_success(&tx).await;
+
+        let progress = tokio::time::timeout(
+            std::time::Duration::from_millis(500),
+            rx.recv(),
+        )
+        .await;
+        let progress = match progress {
+            Ok(p) => p,
+            Err(_) => None,
+        };
+        assert!(
+            progress.is_some(),
+            "send_finished_success must actually send a progress message"
+        );
+        match progress.unwrap() {
+            LifecycleProgress::Finished { result, message } => {
+                assert_eq!(result, StepResult::Success);
+                assert!(
+                    message.is_some(),
+                    "Finished message must include a message field"
+                );
+            }
+            _ => panic!("expected Finished progress from send_finished_success"),
+        }
+    }
+
+    #[test]
+    fn flush_persists_data_to_disk() {
+        // Targets: flush → Ok(()) mutation
+        // When flush is replaced with Ok(()), data stays in memory but is NOT written to disk.
+        // Opening a fresh DB should NOT see the data.
+        let dir = tempfile::tempdir().unwrap();
+        let db = StateDb::open(dir.path().join("db")).unwrap();
+
+        let id = BeadId::parse("flush-test").unwrap();
+        let state = WorkflowState::new(id.clone())
+            .with_transition(StateEvent::WorkspaceReady)
+            .unwrap();
+        persist_state(&db, &state, &[]).unwrap();
+
+        // Drop the DB to release any in-memory buffers
+        drop(db);
+
+        // Re-open the DB - flush should have written data to disk
+        let db2 = StateDb::open(dir.path().join("db")).unwrap();
+        let loaded = load_state(&db2, &id)
+            .unwrap()
+            .map(|(s, _)| s);
+
+        assert!(
+            loaded.is_some(),
+            "flush must persist data to disk - re-opened DB should see the state"
+        );
+    }
 }

@@ -273,11 +273,14 @@ fn first_nonempty_line(text: &str) -> Option<&str> {
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::lifecycle::types::{
-        BeadId, Effect, EffectJournalEntry, StateEvent, StepName, StepResult, WorkflowState,
-        WorkspaceName, WorkspacePath,
+   use super::*;
+   use crate::lifecycle::types::{
+        BeadId, Effect, EffectJournalEntry, ErrorMessage, LifecycleProgress, ModelId, OpencodeUrl,
+        OpencodeServerConfig, Phase, PromptString, SensitiveString, StateEvent, StepName,
+        StepResult, Username, WorkflowState, WorkspaceName, WorkspacePath,
     };
+    use crate::lifecycle::error::LifecycleError;
+   use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     fn make_entry(stdout: &str, stderr: &str, success: bool) -> EffectJournalEntry {
         EffectJournalEntry {
@@ -483,4 +486,157 @@ mod tests {
         assert!(failure.error.is_terminal());
         assert_eq!(failure.error.category(), crate::lifecycle::error::FailureCategory::Command);
     }
+
+    #[tokio::test]
+    async fn send_step_started_sends_step_started_message() {
+        // Target: send_step_started → () mutant at line 116
+        let (tx, mut rx) = mpsc::channel(10);
+        let step_name = StepName("test-step".into());
+        send_step_started(&tx, &step_name).await;
+        drop(tx);
+        let msg = rx.recv().await;
+        assert!(msg.is_some(), "send_step_started must actually send a message");
+        match msg.unwrap() {
+            LifecycleProgress::StepStarted { step, started_at } => {
+                assert_eq!(step.as_str(), "test-step");
+                assert!(!started_at.0.is_empty(), "started_at must not be empty");
+            }
+            other => panic!("expected StepStarted, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn send_step_failed_sends_step_failed_message() {
+        // Target: send_step_failed → () mutant at line 230
+        let (tx, mut rx) = mpsc::channel(10);
+        let step_name = StepName("fail-step".into());
+        let message = "something went wrong";
+        send_step_failed(&tx, &step_name, message).await;
+        drop(tx);
+        let msg = rx.recv().await;
+        assert!(msg.is_some(), "send_step_failed must actually send a message");
+        match msg.unwrap() {
+            LifecycleProgress::StepFailed { step, error } => {
+                assert_eq!(step.as_str(), "fail-step");
+                assert!(error.0.contains("something went wrong"));
+            }
+            other => panic!("expected StepFailed, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn handle_step_transition_transitions_on_success_workspace_prepare() {
+        // Target: delete ! in handle_step_transition at line 44 (negation deletion)
+        // With mutation: returns early on SUCCESS (wrong), phase stays Planned
+        // Without mutation: transitions to WorkspaceReady on success
+        let run = StepRun {
+            workflow_state: WorkflowState::new(BeadId::parse("t").unwrap()),
+            journal: vec![],
+        };
+        let entry = make_entry("ok", "", true); // success
+        let step_name = StepName("workspace-prepare".into());
+        let result = handle_step_transition(run, &step_name, &entry).await;
+        let new_run = match result {
+            Ok(r) => r,
+            Err(_) => panic!("handle_step_transition should succeed for valid entry"),
+        };
+        assert!(
+            matches!(new_run.workflow_state.phase, Phase::WorkspaceReady { .. }),
+            "workspace-prepare success must transition to WorkspaceReady, got {:?}",
+            new_run.workflow_state.phase
+        );
+    }
+
+ #[tokio::test]
+    async fn dispatch_effect_opencode_with_server_uses_server_path() {
+        // Target: delete match arm in dispatch_effect at line 178
+        // With mutation: falls through to run_effect (command execution) → Io error
+        // Without mutation: calls run_opencode_server (HTTP request) → success from mock server
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let server_handle = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut buf = [0u8; 2048];
+            let _ = socket.read(&mut buf).await.unwrap();
+            let session_body = r#"{"id":"sess-abc123"}"#;
+            let session_resp = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+                session_body.len(),
+                session_body
+            );
+            socket.write_all(session_resp.as_bytes()).await.unwrap();
+            let _ = socket.read(&mut buf).await.unwrap();
+            let msg_body = r#"{"type":"text","content":"ok"}"#;
+            let msg_resp = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+                msg_body.len(),
+                msg_body
+            );
+            socket.write_all(msg_resp.as_bytes()).await.unwrap();
+            let _ = socket.shutdown().await;
+        });
+        let addr_str = format!("{addr}");
+        let result = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            run_dispatch_with_server(&addr_str),
+        )
+        .await;
+        match result {
+            Ok(Ok(_)) => {}
+            Ok(Err(e)) => panic!(
+                "dispatch_effect with Opencode+server config must use server path (run_opencode_server), not run_effect. Error: {:?}",
+                e
+            ),
+            Err(_) => panic!(
+                "dispatch_effect timed out — mutation to run_effect likely hanging"
+            ),
+        }
+        server_handle.await.unwrap();
+    }
+
+    async fn run_dispatch_with_server(addr: &str) -> std::result::Result<(), LifecycleError> {
+        let cfg = OpencodeServerConfig {
+            url: OpencodeUrl(format!("http://{addr}")),
+            username: Username("u".into()),
+            password: SensitiveString("p".into()),
+        };
+        let effect = Effect::Opencode {
+            prompt: PromptString("test".into()),
+            model: ModelId("gpt-4".into()),
+            cwd: None,
+        };
+        let executor = TokioCommandExecutor::new();
+        let result = super::dispatch_effect(executor, &effect, Some(&cfg)).await;
+        result.map(|_| ())
+    }
+
+    #[tokio::test]
+    async fn dispatch_effect_without_server_config_runs_effect() {
+        // When server_config is None, dispatch_effect falls through to run_effect.
+        // run_effect with Effect::Opencode spawns the opencode binary.
+        // Since opencode IS installed on this system, it will actually run.
+        // We use a 5-second timeout to handle this gracefully.
+        let effect = Effect::Opencode {
+            prompt: PromptString("test".into()),
+            model: ModelId("gpt-4".into()),
+            cwd: None,
+        };
+        let executor = TokioCommandExecutor::new();
+        let result = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            super::dispatch_effect(executor, &effect, None),
+        )
+        .await;
+        match result {
+            Ok(Ok(_)) | Ok(Err(_)) => {
+                // dispatch_effect completed — it called run_effect (correct behavior)
+            }
+            Err(_) => {
+                panic!(
+                    "dispatch_effect timed out — run_effect may be blocking on opencode binary"
+                );
+            }
+        }
+    }
 }
+

@@ -286,4 +286,68 @@ mod tests {
         };
         assert!(progress_indicates_success(&prog));
     }
+
+    // ── Tests to kill mutation survivors ──
+
+    #[tokio::test]
+    async fn drain_progress_returns_false_on_step_failure() {
+        let (tx, mut rx) = tokio::sync::mpsc::channel(10);
+        tx.send(LifecycleProgress::Initialized {
+            bead_id: BeadId::parse("dp-fail").unwrap(),
+            steps: vec![],
+        }).await.unwrap();
+        tx.send(LifecycleProgress::StepFailed {
+            step: "workspace-prepare".into(),
+            error: "boom".into(),
+        }).await.unwrap();
+        tx.send(LifecycleProgress::Finished {
+            result: StepResult::Success,
+            message: None,
+        }).await.unwrap();
+        drop(tx);
+        let result = drain_progress(&mut rx).await;
+        assert!(!result, "drain_progress should return false when a StepFailed occurs, even if Finished(Success) comes later");
+    }
+
+    #[tokio::test]
+    async fn drain_progress_and_vs_or_operator() {
+        // With &&: StepFailed flips succeeded to false, subsequent Success can't flip it back
+        // With || mutant: StepFailed flips succeeded to false, then Success || false = true
+        let (tx, mut rx) = tokio::sync::mpsc::channel(10);
+        tx.send(LifecycleProgress::Initialized {
+            bead_id: BeadId::parse("dp-and").unwrap(),
+            steps: vec![],
+        }).await.unwrap();
+        tx.send(LifecycleProgress::StepFailed {
+            step: "s1".into(),
+            error: "fail".into(),
+        }).await.unwrap();
+        tx.send(LifecycleProgress::Finished {
+            result: StepResult::Success,
+            message: None,
+        }).await.unwrap();
+        drop(tx);
+        let result = drain_progress(&mut rx).await;
+        assert!(!result, "&& operator: StepFailed should permanently fail the result");
+    }
+
+    #[tokio::test]
+    async fn drain_progress_returns_true_on_all_success() {
+        let (tx, mut rx) = tokio::sync::mpsc::channel(10);
+        tx.send(LifecycleProgress::Initialized {
+            bead_id: BeadId::parse("dp-ok").unwrap(),
+            steps: vec![],
+        }).await.unwrap();
+        tx.send(LifecycleProgress::StepStarted {
+            step: "s1".into(),
+            started_at: "now".into(),
+        }).await.unwrap();
+        tx.send(LifecycleProgress::Finished {
+            result: StepResult::Success,
+            message: None,
+        }).await.unwrap();
+        drop(tx);
+        let result = drain_progress(&mut rx).await;
+        assert!(result);
+    }
 }
