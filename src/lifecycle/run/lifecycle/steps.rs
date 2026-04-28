@@ -85,39 +85,40 @@ fn step_transition_failure(
 async fn execute_single_step(
     executor: TokioCommandExecutor,
     step: &LifecycleStep,
-    mut run: StepRun,
+    run: StepRun,
     tx: &mpsc::Sender<LifecycleProgress>,
     server_config: Option<&OpencodeServerConfig>,
 ) -> std::result::Result<StepRun, StepFailure> {
     let step_name = step.name.clone();
-    run = start_step(run, &step_name, tx).await?;
+    let (run, started_at) = start_step(run, &step_name, tx).await?;
     let entry = match dispatch_effect(executor, &step.effect, server_config).await {
         Ok(entry) => entry,
         Err(error) => return Err(on_dispatch_failure(run, &step_name, tx, error).await),
     };
-    finish_step(run, entry, &step_name, tx).await
+    finish_step(run, entry, &step_name, started_at, tx).await
 }
 
 async fn start_step(
     mut run: StepRun,
     step_name: &StepName,
     tx: &mpsc::Sender<LifecycleProgress>,
-) -> std::result::Result<StepRun, StepFailure> {
+) -> std::result::Result<(StepRun, chrono::DateTime<chrono::Utc>), StepFailure> {
+    let started_at = chrono::Utc::now();
     run.workflow_state = run
         .workflow_state
         .clone()
         .with_transition(StateEvent::StepStarted(step_name.clone()))
         .map_err(|e| to_step_failure(&run, e))?;
-    send_step_started(tx, step_name).await;
-    Ok(run)
+    send_step_started(tx, step_name, started_at).await;
+    Ok((run, started_at))
 }
 
-async fn send_step_started(tx: &mpsc::Sender<LifecycleProgress>, step_name: &StepName) {
+async fn send_step_started(tx: &mpsc::Sender<LifecycleProgress>, step_name: &StepName, started_at: chrono::DateTime<chrono::Utc>) {
     send_progress(
         tx,
         LifecycleProgress::StepStarted {
             step: step_name.clone(),
-            started_at: Timestamp(chrono::Utc::now().to_rfc3339()),
+            started_at: Timestamp(started_at.to_rfc3339()),
         },
     )
     .await;
@@ -127,11 +128,12 @@ async fn finish_step(
     run: StepRun,
     entry: EffectJournalEntry,
     step_name: &StepName,
+    started_at: chrono::DateTime<chrono::Utc>,
     tx: &mpsc::Sender<LifecycleProgress>,
 ) -> std::result::Result<StepRun, StepFailure> {
     let transitioned_run = handle_step_transition(run, step_name, &entry).await?;
     if entry.result.is_success() {
-        Ok(on_step_success(transitioned_run, entry, step_name, tx).await)
+        Ok(on_step_success(transitioned_run, entry, step_name, started_at, tx).await)
     } else {
         Err(on_step_failure(transitioned_run, entry, step_name, tx).await)
     }
@@ -193,14 +195,16 @@ async fn on_step_success(
     run: StepRun,
     entry: EffectJournalEntry,
     step_name: &StepName,
+    started_at: chrono::DateTime<chrono::Utc>,
     tx: &mpsc::Sender<LifecycleProgress>,
 ) -> StepRun {
     let new_state = run.workflow_state.with_advanced_step(step_name.clone());
+    let duration_ms = (chrono::Utc::now() - started_at).num_milliseconds() as u64;
     send_progress(
         tx,
         LifecycleProgress::StepCompleted {
             step: step_name.clone(),
-            duration_ms: 0,
+            duration_ms,
         },
     )
     .await;
@@ -492,7 +496,8 @@ mod tests {
         // Target: send_step_started → () mutant at line 116
         let (tx, mut rx) = mpsc::channel(10);
         let step_name = StepName("test-step".into());
-        send_step_started(&tx, &step_name).await;
+        let started_at = chrono::Utc::now();
+        send_step_started(&tx, &step_name, started_at).await;
         drop(tx);
         let msg = rx.recv().await;
         assert!(msg.is_some(), "send_step_started must actually send a message");
